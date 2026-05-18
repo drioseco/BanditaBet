@@ -55,8 +55,14 @@ export function renderPicks() {
     html += `<div class="pick-section-lbl"><span>📅 Próximos — marcá antes del pitazo (${future.length})</span><span style="font-size:.5rem">Cierra al inicio del partido</span></div>`;
     future.forEach(m => html += pickCardHTML(m, player, false));
   }
-  html += `<button class="save-btn" id="save-picks-btn" style="background:${c};color:${c === '#E8B33D' ? 'var(--bb-ink)' : 'var(--bb-cream)'}">★ Guardar picks de ${player.name}</button>`;
   body.innerHTML = html;
+
+  // Botón flotante sticky — siempre visible mientras scrolleas
+  const floatEl = document.getElementById('picks-float');
+  if (floatEl) {
+    const textColor = c === '#E8B33D' ? 'var(--bb-ink)' : 'var(--bb-cream)';
+    floatEl.innerHTML = `<button class="save-btn save-btn-float" id="save-picks-btn" style="background:${c};color:${textColor}">★ Guardar picks de ${player.name}</button>`;
+  }
 
   body.querySelectorAll('input[data-pick]').forEach(inp => {
     inp.addEventListener('input', e => {
@@ -68,7 +74,8 @@ export function renderPicks() {
       e.target.classList.toggle('bb-has-value', v != null);
     });
   });
-  document.getElementById('save-picks-btn').onclick = onSave;
+  const saveBtn = document.getElementById('save-picks-btn');
+  if (saveBtn) saveBtn.onclick = onSave;
 }
 
 function pickCardHTML(m, player, urgent) {

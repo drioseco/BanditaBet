@@ -150,7 +150,7 @@ body {
 }
 .std-head-l, .std-head-r {
   font-family: var(--bb-mono); font-size: .5rem; font-weight: 700;
-  letter-spacing: .8px; text-transform: uppercase; color: rgba(242,227,194,.38);
+  letter-spacing: .8px; text-transform: uppercase; color: color-mix(in srgb, var(--bb-cream) 38%, transparent);
 }
 .std-row {
   display: flex; align-items: center; padding: .65rem 1rem;
@@ -162,10 +162,10 @@ body {
 .std-pos {
   font-family: var(--bb-mono); font-size: .9rem; font-weight: 700;
   width: 22px; flex-shrink: 0; text-align: center; margin-right: .7rem;
-  color: rgba(31,26,46,.28);
+  color: color-mix(in srgb, var(--bb-ink) 28%, transparent);
 }
 .std-pos.p1 { color: var(--bb-gold); font-size: 1.1rem; }
-.std-pos.p2 { color: rgba(31,26,46,.42); }
+.std-pos.p2 { color: color-mix(in srgb, var(--bb-ink) 42%, transparent); }
 .std-pos.p3 { color: var(--bb-maroon); }
 .std-ava {
   width: 38px; height: 38px; border-radius: 50%; object-fit: cover;
@@ -446,6 +446,28 @@ body {
 }
 .save-btn:hover { transform: translate(-1px,-1px); box-shadow: 5px 5px 0 var(--bb-ink); }
 .save-btn:active { transform: translate(1px,1px); box-shadow: var(--bb-shadow-xs); }
+
+/* Contenedor flotante fijo del botón guardar */
+#picks-float {
+  position: fixed;
+  bottom: 0;
+  left: 0; right: 0;
+  z-index: 50;
+  padding: .5rem 1rem .75rem;
+  background: linear-gradient(to top, var(--bb-cream) 55%, transparent);
+  pointer-events: none;
+  max-width: 600px;
+  margin: 0 auto;
+}
+#picks-float:empty { display: none; }
+#s-picks.hidden #picks-float { display: none; }
+#picks-float .save-btn {
+  pointer-events: all;
+  margin-top: 0;
+  box-shadow: 0 -2px 0 var(--bb-ink), var(--bb-shadow);
+}
+/* Espacio para que el último card no quede tapado por el botón */
+#picks-body { padding-bottom: 5rem; }
 .picker-btn {
   background: var(--bb-paper); border: var(--bb-border-sm);
   border-color: rgba(31,26,46,.24); color: rgba(31,26,46,.52);

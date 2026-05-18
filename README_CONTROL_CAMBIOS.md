@@ -1100,3 +1100,131 @@ ZIP regenerado: `deploy/banditabet-netlify-drop-20260516qa10.zip`.
 
 - Subir ZIP a Netlify (drag-drop)
 - Verificar en produccion que la sync funciona correctamente
+
+---
+
+## Ronda qa11 — 2026-05-18
+
+### Migracion de hosting: Netlify → Vercel (qa11)
+
+Netlify agoto los creditos del plan gratuito. Se migro a Vercel via GitHub.
+
+**Pasos realizados:**
+1. Inicializado repo Git local en `/Users/darioriosecofigueroa/Projects/BanditaBet/`
+2. Creado `.gitignore`: `.DS_Store`, `.claude/`, `deploy/*.zip`, `_assets-source/`, `_legacy/`, `node_modules/`, `.env`
+3. Primer commit: `BanditaBet qa10 — full project initial commit`
+4. Repo en GitHub: `https://github.com/drioseco/BanditaBet`
+5. Proyecto en Vercel: `https://vercel.com/dario-s-projects5/bandita-bet`
+6. Root Directory configurado a `web` en Vercel Build and Deployment settings
+7. Redeploy forzado para aplicar el cambio de Root Directory
+
+**URL publica actual:**
+
+```txt
+https://bandita-bet.vercel.app
+```
+
+**Deploy automatico:** cada push a `main` en GitHub dispara un redeploy en Vercel (~3 segundos).
+
+**Nota de seguridad:** el token personal de GitHub (`ghp_h1RH...`) fue expuesto durante la sesion.
+El usuario fue dirigido a `github.com/settings/tokens` para revocarlo.
+El remote URL fue limpiado: `git remote set-url origin https://github.com/drioseco/BanditaBet.git`.
+
+### Homepage cleanup — reduccion de secciones (qa11)
+
+El home tenia 9+ secciones que generaban demasiado scroll, especialmente en celular.
+Se redujo a 4 secciones esenciales.
+
+**Secciones que se mantienen:**
+1. Hero (La Carrera al Titulo) — banner con lider, KPIs, progreso de temporada
+2. Clasificacion — standings con barras proporcionales
+3. Picks Pendientes — matriz de proximos partidos x jugadores
+4. Cronica · Ultima Fecha — articulo auto-generado de la ultima jornada cerrada
+
+**Secciones removidas del home:**
+- Banditas FC · Plantel Oficial (cromos Panini)
+- Logros · Cromos Especiales
+- XP · Nivel · Misiones
+- Album de la Temporada
+- Carrera al Titulo (cancha de futbol animada)
+- Cronicas Banditas FC (jugadas manuales)
+- Momentos del Torneo (narrative feed)
+
+**Archivos modificados:**
+- `web/index.html` — eliminados los `<div>` y `sdiv` de las 7 secciones removidas
+- `web/js/render-home.js` — eliminadas las llamadas a `renderPlantel()`, `renderLogros()`,
+  `renderMisiones()`, `renderAlbum()`, `renderCronicas()`, el bloque de title race, y el
+  narrative feed. Las funciones siguen en el archivo (no se eliminaron) por si se quieren
+  reubicar en otras vistas en el futuro.
+
+### Fix contraste tema Modern Sport-tech (qa11)
+
+El tema Modern tenia problemas graves de contraste: amarillo/neon sobre blanco, negro sobre negro.
+
+**Causa raiz:** `--bb-maroon` se usaba tanto como fondo (hero) como color de texto (posiciones,
+gaps, acentos). Al ser neon en Modern, el hero era ilegible. Ademas, muchos colores en `app.css`
+estaban hardcodeados con `rgba(31,26,46,...)` (tinta papel) y `rgba(242,227,194,...)` (cream),
+que son invisibles sobre fondos oscuros.
+
+**Solucion:**
+1. `--bb-maroon` en Modern cambiado de `#D4FF3D` (neon) a `#FF4D2E` (rojo accent visible)
+2. `--bb-pasto` en Modern cambiado de `#D4FF3D` a `#7BCC3D` (verde legible)
+3. Hero background overrideado a `#1A1A24` (dark) via `[data-theme="modern"] .hero`
+4. `std-head` background overrideado a `#23232B`
+5. Posiciones `.std-pos` y `.std-pos.p2` cambiadas de `rgba(31,26,46,...)` hardcodeado a
+   `color-mix(in srgb, var(--bb-ink) N%, transparent)` — funciona con cualquier tema
+6. `std-head` text color cambiado de cream hardcodeado a `color-mix(in srgb, var(--bb-cream) 38%, transparent)`
+7. Overrides adicionales para Modern y Nocturna: `.sdiv-txt`, `.sdiv-line`, `.hero-sub`,
+   `.std-row:hover`, `.std-row` border, `.kpi`, `.kpi-l`, `.prog-*`, `.std-meta-*`,
+   `.std-bar-wrap`, `.nb`, `.hdr small`
+
+**Archivos modificados:**
+- `web/css/themes.css` — `--bb-maroon`, `--bb-pasto` corregidos + bloque de ~30 overrides Modern/Nocturna
+- `web/css/app.css` — `.std-pos`, `.std-pos.p2`, `.std-head-l/.std-head-r` migrados a `color-mix()`
+
+### Archivos clave (estado qa11)
+
+- `web/index.html` — home reducido a 4 secciones
+- `web/js/render-home.js` — render calls limpiados (funciones siguen disponibles)
+- `web/css/themes.css` — Modern/Nocturna con overrides de contraste
+- `web/css/app.css` — colores migrados a tokens via `color-mix()`
+
+### Pasos futuros (roadmap)
+
+**Alta prioridad — automatizacion de resultados:**
+
+Actualmente los resultados se cargan a mano desde la vista Gestion (Dari ingresa marcador
+final + factor por partido). Esto es tedioso y propenso a errores.
+
+**Propuesta:** integrar una API de futbol (API-Football, football-data.org, u otra gratuita)
+para obtener resultados en tiempo real o al final de cada jornada. El flujo seria:
+1. Apps Script consulta la API externa periodicamente (trigger por tiempo) o al abrir la web.
+2. Si un partido tiene resultado final en la API, se auto-rellena en el Sheet.
+3. Solo partidos de la Polla se actualizan (match por nombre de equipos o ID externo).
+4. Se mantiene la opcion manual como fallback para partidos no cubiertos por la API.
+
+**Impacto:** elimina el cuello de botella de tener que buscar y copiar resultados a mano.
+La polla se actualiza sola.
+
+**Media prioridad — ticker de futbol en vivo en el home:**
+
+Agregar una seccion tipo "Futbol hoy" en la homepage que muestre partidos del dia de las
+principales ligas del mundo (no necesariamente de la Polla). Funcionaria como un informador
+de futbol mundial integrado:
+- Partidos en vivo con marcador actualizado
+- Proximos partidos del dia con hora local
+- Resultados finales del dia
+- Ligas: Liga MX, Premier League, La Liga, Serie A, Champions, etc.
+
+**Fuente de datos:** misma API de futbol que se use para los resultados automaticos.
+Se podria renderizar como un ticker horizontal o un bloque compacto arriba del hero.
+
+**Impacto:** convierte BanditaBet de "app de la Polla" a "centro de futbol de los Banditas".
+Los 4 amigos abren la app no solo para ver sus picks sino para enterarse de lo que pasa en
+el futbol mundial. Aumenta la frecuencia de visitas diarias.
+
+**Baja prioridad — pendientes de sesiones anteriores:**
+- Reubicar secciones removidas del home (Plantel, Logros, XP, Album) en una vista dedicada
+  o como sub-tabs dentro de Stats
+- Phase 4 Broadcast: live ticker interno de la Polla, sparklines, Power Rankings
+- Custom domain para bandita-bet.vercel.app

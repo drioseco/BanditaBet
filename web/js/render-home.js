@@ -939,122 +939,12 @@ export function renderHome() {
     });
   }
 
-  // ── Title race — cancha de fútbol ────────────────────────────────
-  const track = document.getElementById('tr-track');
-  if (track) {
-    track.innerHTML = '';
-    const maxPts = allPlayers[0]?.total || 1;
-
-    // Columna izquierda: nombres
-    const labelsEl = document.createElement('div');
-    labelsEl.className = 'race-labels';
-
-    // Cancha verde central
-    const pitchEl = document.createElement('div');
-    pitchEl.className = 'race-pitch';
-
-    // Arco derecho (abarca todos los carriles)
-    const goalEl = document.createElement('div');
-    goalEl.className = 'race-goal';
-    goalEl.innerHTML = '<img class="race-trophy-img" src="./img/trophy.svg" alt="Copa">';
-
-    // Columna derecha: gaps
-    const gapsEl = document.createElement('div');
-    gapsEl.className = 'race-gaps';
-
-    const runners = [];
-    allPlayers.forEach((s, i) => {
-      const player = players.find(p => p.name === s.name);
-      const c = player?.color || '#fff';
-      const pct = Math.max(2, (s.total / maxPts) * 88);
-      const gapVal = i === 0 ? null : (allPlayers[0].total - s.total).toFixed(2);
-
-      // nombre
-      const nameEl = document.createElement('div');
-      nameEl.className = 'race-name';
-      nameEl.style.color = c;
-      nameEl.textContent = s.name;
-      labelsEl.appendChild(nameEl);
-
-      // carril en la cancha
-      const laneEl = document.createElement('div');
-      laneEl.className = 'race-lane';
-      laneEl.innerHTML = `
-        <div class="race-runner${i === 0 ? ' running' : ''}" style="left:2%">
-          <div class="race-fig">${playerFigureSvg(c, s.name)}</div>
-          <span class="race-pts">${s.total.toFixed(0)}pts</span>
-        </div>`;
-      pitchEl.appendChild(laneEl);
-      runners.push({ el: laneEl.querySelector('.race-runner'), pct });
-
-      // gap
-      const gapEl = document.createElement('div');
-      gapEl.className = 'race-gap' + (i === 0 ? ' is-leader' : '');
-      gapEl.textContent = i === 0 ? '★ líder' : `−${gapVal} pts`;
-      gapsEl.appendChild(gapEl);
-    });
-
-    // Ensamblar
-    const rowEl = document.createElement('div');
-    rowEl.className = 'race-row';
-    rowEl.appendChild(labelsEl);
-    rowEl.appendChild(pitchEl);
-    rowEl.appendChild(goalEl);
-    rowEl.appendChild(gapsEl);
-    track.appendChild(rowEl);
-
-    // Animar corredores
-    runners.forEach(({ el, pct }, i) => {
-      setTimeout(() => { el.style.left = pct + '%'; }, 80 + i * 70);
-    });
-  }
-
-  // ── Plantel Banditas FC ──────────────────────────────────────────
-  renderPlantel();
-
-  // ── Logros · Cromos especiales ───────────────────────────────────
-  renderLogros();
-
-  // ── Sistema XP + Misiones ────────────────────────────────────────
-  renderMisiones();
-
   // ── Picks pendientes ─────────────────────────────────────────────
   renderPendingPicks();
-
-  // ── Álbum de la temporada ────────────────────────────────────────
-  renderAlbum();
 
   // ── Crónica auto de la última fecha ─────────────────────────────
   renderCronicaAuto();
 
-  // ── Crónicas Banditas FC ─────────────────────────────────────────
-  renderCronicas();
-
-  // ── Narrative ────────────────────────────────────────────────────
-  const feed = document.getElementById('narr-feed');
-  if (feed) {
-    feed.innerHTML = '';
-    if (allPlayers.length >= 2) {
-      const gap = (allPlayers[0].total - allPlayers[1].total).toFixed(2);
-      addNarrative(feed, '🏆',
-        `<strong>${allPlayers[0].name}</strong> lidera la polla. <strong>${allPlayers[1].name}</strong> a ${gap} puntos — ${parseFloat(gap) < 25 ? 'la polla sigue abierta, cualquier cosa puede pasar' : 'la diferencia es considerable pero no imposible'}.`,
-        'cool'
-      );
-    }
-    const bigWo = allPlayers.slice().sort((a, b) => b.wo - a.wo)[0];
-    if (bigWo && bigWo.wo > 10) {
-      addNarrative(feed, '❌',
-        `<strong>${bigWo.name}</strong> lleva <strong>${bigWo.wo} WO</strong> en la temporada. Cada partido sin marcar es plata en la mesa de los demás.`,
-        'hot'
-      );
-    }
-    if (lastSyncedAt) {
-      addNarrative(feed, '🔄',
-        `Última sincronización con el Sheet: <strong>${new Date(lastSyncedAt).toLocaleString('es-CL')}</strong>. Si los amigos editan el Excel, se refleja acá automáticamente.`,
-        'gold'
-      );
-    }
-  }
 }
 
 function addNarrative(feed, ico, html, cls) {
