@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>BanditaBet — Guia para jugadores</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: #F2E3C2;
+    color: #1F1A2E;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 32px;
+    line-height: 1.6;
+  }
+  h1 {
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 4px;
+  }
+  h1 small {
+    display: block;
+    font-size: .9rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: .6;
+    margin-top: 4px;
+  }
+  h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-top: 32px;
+    margin-bottom: 12px;
+    border-bottom: 2px solid #1F1A2E;
+    padding-bottom: 4px;
+  }
+  h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-top: 20px;
+    margin-bottom: 8px;
+  }
+  p, li { margin-bottom: 8px; }
+  ul, ol { padding-left: 20px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: .85rem;
+  }
+  th, td {
+    border: 1px solid rgba(31,26,46,.2);
+    padding: 6px 10px;
+    text-align: left;
+  }
+  th { background: #1F1A2E; color: #F2E3C2; font-weight: 600; }
+  .badge {
+    display: inline-block;
+    background: #1F1A2E;
+    color: #F2E3C2;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: .75rem;
+    font-family: 'Space Mono', monospace;
+    margin-right: 4px;
+  }
+  .players {
+    display: flex;
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .player-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 2px solid;
+    font-weight: 700;
+    font-size: .85rem;
+  }
+  .header-block {
+    text-align: center;
+    padding: 24px 0 16px;
+    border-bottom: 3px double #1F1A2E;
+    margin-bottom: 24px;
+  }
+  .section-card {
+    background: white;
+    border: 1.5px solid rgba(31,26,46,.12);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 12px 0;
+  }
+  .tip {
+    background: rgba(232,178,61,.15);
+    border-left: 4px solid #E8B33D;
+    padding: 10px 14px;
+    margin: 10px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: .85rem;
+  }
+  .url {
+    font-family: 'Space Mono', monospace;
+    font-size: .8rem;
+    background: #1F1A2E;
+    color: #E8B33D;
+    padding: 8px 14px;
+    border-radius: 4px;
+    display: block;
+    text-align: center;
+    margin: 12px 0;
+    letter-spacing: .5px;
+  }
+  @media print {
+    body { background: white; padding: 20px; }
+    .section-card { border-color: #ccc; }
+  }
+  .footer {
+    text-align: center;
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 2px solid rgba(31,26,46,.15);
+    font-size: .8rem;
+    opacity: .6;
+  }
+</style>
+</head>
+<body>
+
+<div class="header-block">
+  <h1>BANDITA BET<small>PRODE 2026 &middot; XV Aniversario</small></h1>
+  <div class="players">
+    <span class="player-chip" style="border-color:#1E4FB8;color:#1E4FB8">Dari</span>
+    <span class="player-chip" style="border-color:#E8442C;color:#E8442C">Kmi</span>
+    <span class="player-chip" style="border-color:#E8B33D;color:#E8B33D">Blopa</span>
+    <span class="player-chip" style="border-color:#2E6B3A;color:#2E6B3A">Pela</span>
+  </div>
+  <div class="url">https://banditabet-kelpie-a4cd33.netlify.app/</div>
+</div>
+
+<h2>Que es BanditaBet</h2>
+<p>La polla de futbol privada de los 4 banditas. Cada uno predice marcadores exactos antes de que se jueguen los partidos. Al terminar, el sistema calcula los puntos automaticamente segun que tan cerca estuvo tu prediccion.</p>
+
+<h2>Como se juega</h2>
+<div class="section-card">
+  <ol>
+    <li><strong>Entras a la pagina</strong> y elegis tu nombre (se guarda en el browser, sin contrasena).</li>
+    <li><strong>Vas a "Picks"</strong> y pones tu prediccion: marcador local - visitante para cada partido pendiente.</li>
+    <li><strong>Guardas</strong> y listo — cuando el partido termine, el sistema asigna puntos automaticamente.</li>
+  </ol>
+</div>
+
+<div class="tip">Pone tus picks ANTES de que arranque el partido — despues ya no se puede.</div>
+
+<h2>Puntuacion</h2>
+<table>
+  <tr><th>Resultado</th><th>Que significa</th><th>Puntos</th></tr>
+  <tr><td><span class="badge">P</span> Pleno</td><td>Acertaste el marcador exacto</td><td>Factor x base (lo maximo)</td></tr>
+  <tr><td><span class="badge">Ac</span> Acierto</td><td>Acertaste quien gano/empato pero no el score</td><td>Puntos parciales</td></tr>
+  <tr><td><span class="badge">X</span> Miss</td><td>No le pegaste</td><td>0</td></tr>
+  <tr><td><span class="badge">WO</span></td><td>No pusiste pick a tiempo</td><td>0 (y queda registrado)</td></tr>
+</table>
+<p>El <strong>factor</strong> premia las sorpresas: si acertas un resultado improbable (factor alto), ganas mas puntos.</p>
+
+<h2>Secciones de la app</h2>
+
+<h3>Tabla (Home)</h3>
+<div class="section-card">
+  <ul>
+    <li><strong>Clasificacion</strong> — ranking en vivo con forma reciente y puntos</li>
+    <li><strong>Plantel</strong> — los 4 cromos Panini de cada jugador con stats y frase</li>
+    <li><strong>Logros</strong> — stickers desbloqueables tipo album</li>
+    <li><strong>XP + Misiones</strong> — sistema de niveles (Promesa a Leyenda) con misiones</li>
+    <li><strong>Picks pendientes</strong> — que partidos te faltan por llenar</li>
+    <li><strong>Carrera al titulo</strong> — visualizacion de quien va ganando</li>
+    <li><strong>Cronica automatica</strong> — articulo deportivo de la ultima fecha cerrada</li>
+  </ul>
+</div>
+
+<h3>Partidos</h3>
+<div class="section-card">
+  <ul>
+    <li>Todos los partidos por jornada con picks de los 4</li>
+    <li>Toggle de orden: recientes primero o antiguos primero</li>
+    <li>Indicadores: Sorpreson, Consenso, "Solo lo vio"</li>
+    <li>Filtro por Liga y Experto</li>
+  </ul>
+</div>
+
+<h3>Picks</h3>
+<div class="section-card">
+  <p>Tu vista individual: todos tus picks, estado y puntos. Aca tambien cargas tus predicciones.</p>
+</div>
+
+<h3>Stats</h3>
+<div class="section-card">
+  <ul>
+    <li>Pick de la temporada · Premios raros · Evolucion</li>
+    <li>Calendario ganador · H2H · Gemelos & rivales</li>
+    <li>Tendencias de apuesta · Marcadores favoritos</li>
+  </ul>
+</div>
+
+<h2>Sistema XP y Niveles</h2>
+<table>
+  <tr><th>Accion</th><th>XP</th></tr>
+  <tr><td>Pleno exacto</td><td>+10</td></tr>
+  <tr><td>Pleno solo (nadie mas acerto)</td><td>+5 bonus</td></tr>
+  <tr><td>Goleador (pleno en partido 4+ goles)</td><td>+3 bonus</td></tr>
+  <tr><td>Acierto resultado</td><td>+5</td></tr>
+  <tr><td>Racha 3+</td><td>+5 bonus</td></tr>
+  <tr><td>Racha 5+</td><td>+15 bonus</td></tr>
+</table>
+
+<table>
+  <tr><th>Nivel</th><th>XP minimo</th><th>Titulo</th></tr>
+  <tr><td>1</td><td>0</td><td>Promesa</td></tr>
+  <tr><td>2</td><td>30</td><td>Puntero</td></tr>
+  <tr><td>3</td><td>80</td><td>Crack</td></tr>
+  <tr><td>4</td><td>160</td><td>Figurita</td></tr>
+  <tr><td>5</td><td>300</td><td>Leyenda</td></tr>
+</table>
+
+<h2>9 Misiones</h2>
+<table>
+  <tr><th>#</th><th>Mision</th><th>Objetivo</th></tr>
+  <tr><td>1</td><td>Primera sangre</td><td>Tu primer pleno exacto</td></tr>
+  <tr><td>2</td><td>Doblete</td><td>2 plenos en la misma jornada</td></tr>
+  <tr><td>3</td><td>Hat-trick</td><td>3 plenos en la misma jornada</td></tr>
+  <tr><td>4</td><td>Racha x3</td><td>3 aciertos consecutivos</td></tr>
+  <tr><td>5</td><td>Racha x5</td><td>5 aciertos consecutivos</td></tr>
+  <tr><td>6</td><td>Ojo clinico</td><td>Ser el unico en acertar un marcador</td></tr>
+  <tr><td>7</td><td>Jornada perfecta</td><td>Todos los picks P o Ac en una jornada</td></tr>
+  <tr><td>8</td><td>El goleador</td><td>Pleno en partido con 4+ goles</td></tr>
+  <tr><td>9</td><td>Centurion</td><td>Acumular 100 XP</td></tr>
+</table>
+
+<h2>Logros (Cromos desbloqueables)</h2>
+<div class="section-card">
+  <p>Cada logro aparece como un sticker por jugador. Los que no has desbloqueado aparecen en blanco y negro con "?" — completa la condicion para revelar tu cromo.</p>
+  <p>
+    <span class="badge">&#9733; Pleno solo</span>
+    <span class="badge">&#9678; Pleno</span>
+    <span class="badge">&#9889; Doblete</span>
+    <span class="badge">&#127913; Hat-trick</span>
+    <span class="badge">&#128293; Racha x3/x5</span>
+    <span class="badge">&#128081; Jornada perfecta</span>
+    <span class="badge">&#9917; Goleador</span>
+    <span class="badge">&#127941; Sin WO</span>
+  </p>
+</div>
+
+<h2>Temas visuales</h2>
+<p>Arriba a la derecha hay 5 bolitas de color para cambiar el look:</p>
+<table>
+  <tr><th>Tema</th><th>Estilo</th></tr>
+  <tr><td>Papel</td><td>Panini anos 90 (default)</td></tr>
+  <tr><td>Nocturna</td><td>Cancha de noche, fondo oscuro</td></tr>
+  <tr><td>Hueso</td><td>Minimalista, sobrio</td></tr>
+  <tr><td>Modern</td><td>Sport-tech, limpio</td></tr>
+  <tr><td>WC26</td><td>Colores World Cup 2026</td></tr>
+</table>
+
+<h2>Tips rapidos</h2>
+<div class="tip">Usa el toggle "<strong>&#8595; Reciente</strong>" en Partidos para ver los proximos primero sin scrollear.</div>
+<div class="tip">Mira la <strong>Cronica</strong> despues de cada jornada — tiene resumen con citas de cada uno.</div>
+<div class="tip">Podes <strong>compartir la Cronica</strong> desde el boton de share (funciona en el celu).</div>
+<div class="tip">Si no pones tu pick antes del partido, te queda <strong>WO</strong> — no seas ese.</div>
+
+<div class="footer">
+  Bandita Bet &middot; PRODE 2026 &middot; XV Aniversario<br>
+  Hecho con carino para los 4 banditas.
+</div>
+
+</body>
+</html>

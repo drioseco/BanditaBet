@@ -1,0 +1,139 @@
+/* ════════════════════════════════════════════════════════════════════
+   BanditaBet · Temas de color (5 paletas)
+   Cada tema redefine los tokens de tokens.css para que app.css
+   los tome automáticamente sin ningún cambio adicional.
+
+   Activar: document.documentElement.dataset.theme = '<key>'
+   Claves:  papel · nocturna · bone · modern · wc26
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── V1 · PAPEL — default (Panini 90s) ─────────────────────────────
+   Ya definido en tokens.css como :root. Declaramos igualmente para
+   que el selector data-theme funcione explícitamente.            */
+[data-theme="papel"] {
+  --bb-cream:   #F2E3C2;
+  --bb-paper:   #F8EFD8;
+  --bb-ink:     #1F1A2E;
+  --bb-maroon:  #8C1D2F;
+  --bb-gold:    #E8B33D;
+  --bb-tomate:  #E8442C;
+  --bb-pasto:   #2E6B3A;
+  --bb-cobalt:  #1E4FB8;
+  --bb-holo-1:  #9CD3E8;
+  --bb-holo-2:  #F2C2D8;
+  --bb-holo-3:  #FBE38B;
+  --bb-shadow:    4px 4px 0 #1F1A2E;
+  --bb-shadow-sm: 3px 3px 0 #1F1A2E;
+  --bb-shadow-xs: 2px 2px 0 #1F1A2E;
+  --bb-border:    2px solid #1F1A2E;
+  --bb-border-sm: 1.5px solid #1F1A2E;
+}
+
+/* ── V1 · NOCTURNA — dark mode ──────────────────────────────────── */
+[data-theme="nocturna"] {
+  --bb-cream:   #1A1726;
+  --bb-paper:   #221E32;
+  --bb-ink:     #F0E8D2;
+  --bb-maroon:  #C84257;
+  --bb-gold:    #F2C44A;
+  --bb-tomate:  #FF6A4A;
+  --bb-pasto:   #5BB17A;
+  --bb-cobalt:  #5B8DEF;
+  --bb-holo-1:  #3D5066;
+  --bb-holo-2:  #5E3D55;
+  --bb-holo-3:  #6B5A2A;
+  --bb-shadow:    4px 4px 0 #F0E8D2;
+  --bb-shadow-sm: 3px 3px 0 #F0E8D2;
+  --bb-shadow-xs: 2px 2px 0 #F0E8D2;
+  --bb-border:    2px solid #F0E8D2;
+  --bb-border-sm: 1.5px solid #F0E8D2;
+}
+
+/* ── V1 · HUESO — sobrio, menos amarillo ───────────────────────── */
+[data-theme="bone"] {
+  --bb-cream:   #E8E2D3;
+  --bb-paper:   #EFEAD9;
+  --bb-ink:     #262030;
+  --bb-maroon:  #7A2435;
+  --bb-gold:    #D4A53A;
+  --bb-tomate:  #D94A30;
+  --bb-pasto:   #3A7849;
+  --bb-cobalt:  #2B5BB5;
+  --bb-holo-1:  #A5C8D8;
+  --bb-holo-2:  #E0BBC8;
+  --bb-holo-3:  #E8D58A;
+  --bb-shadow:    4px 4px 0 #262030;
+  --bb-shadow-sm: 3px 3px 0 #262030;
+  --bb-shadow-xs: 2px 2px 0 #262030;
+  --bb-border:    2px solid #262030;
+  --bb-border-sm: 1.5px solid #262030;
+}
+
+/* ── V2 · MODERN — sport-tech editorial ────────────────────────── */
+[data-theme="modern"] {
+  --bb-cream:   #0A0A0F;
+  --bb-paper:   #16161D;
+  --bb-ink:     #F4F1EA;
+  --bb-maroon:  #D4FF3D;
+  --bb-gold:    #D4FF3D;
+  --bb-tomate:  #FF4D2E;
+  --bb-pasto:   #D4FF3D;
+  --bb-cobalt:  #8A8A95;
+  --bb-rosa:    #FF4D2E;
+  --bb-holo-1:  #1E3A2F;
+  --bb-holo-2:  #2E3A1A;
+  --bb-holo-3:  #3A3A10;
+  --bb-shadow:    4px 4px 0 #D4FF3D;
+  --bb-shadow-sm: 3px 3px 0 #D4FF3D;
+  --bb-shadow-xs: 2px 2px 0 #D4FF3D;
+  --bb-border:    2px solid #23232B;
+  --bb-border-sm: 1.5px solid #23232B;
+}
+
+/* ── V3 · WC26 — World Cup 2026 multicromático ─────────────────── */
+[data-theme="wc26"] {
+  --bb-cream:   #FFFFFF;
+  --bb-paper:   #F4F4F6;
+  --bb-ink:     #0A0A0A;
+  --bb-maroon:  #E1261C;
+  --bb-gold:    #FFD100;
+  --bb-tomate:  #E1261C;
+  --bb-pasto:   #009639;
+  --bb-cobalt:  #0033A0;
+  --bb-holo-1:  #0033A0;
+  --bb-holo-2:  #E1261C;
+  --bb-holo-3:  #FFD100;
+  --bb-shadow:    4px 4px 0 #0A0A0A;
+  --bb-shadow-sm: 3px 3px 0 #0A0A0A;
+  --bb-shadow-xs: 2px 2px 0 #0A0A0A;
+  --bb-border:    2px solid #0A0A0A;
+  --bb-border-sm: 1.5px solid #0A0A0A;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Theme Picker — 5 dots en el header
+   ════════════════════════════════════════════════════════════════════ */
+.bb-theme-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bb-theme-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+  flex-shrink: 0;
+}
+.bb-theme-dot:hover  { transform: scale(1.2); }
+.bb-theme-dot.active { box-shadow: 0 0 0 2px var(--bb-ink); }
+
+/* Colores representativos de cada paleta */
+.bb-theme-dot[data-theme="papel"]    { background: #8C1D2F; border-color: #F2E3C2; }
+.bb-theme-dot[data-theme="nocturna"] { background: #1A1726; border-color: #C84257; }
+.bb-theme-dot[data-theme="bone"]     { background: #E8E2D3; border-color: #7A2435; }
+.bb-theme-dot[data-theme="modern"]   { background: #0A0A0F; border-color: #D4FF3D; }
+.bb-theme-dot[data-theme="wc26"]     { background: #E1261C; border-color: #FFD100; }

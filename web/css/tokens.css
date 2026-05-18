@@ -1,0 +1,88 @@
+/* ════════════════════════════════════════════════════════════════════
+   BanditaBet · Design tokens
+   Variables de marca + escala tipográfica + sombras + animation timings.
+   Importado primero por index.html.
+════════════════════════════════════════════════════════════════════ */
+:root {
+  /* ── Paleta marca ─────────────────────────────────────── */
+  --bb-cream:   #F2E3C2;
+  --bb-paper:   #F8EFD8;
+  --bb-ink:     #1F1A2E;
+  --bb-maroon:  #8C1D2F;
+  --bb-gold:    #E8B33D;
+  --bb-cobalt:  #1E4FB8;
+  --bb-tomate:  #E8442C;
+  --bb-pasto:   #2E6B3A;
+  --bb-rosa:    #E96A8D;
+
+  /* Holográfica para barras / acentos */
+  --bb-holo-1:  #9CD3E8;
+  --bb-holo-2:  #F2C2D8;
+  --bb-holo-3:  #FBE38B;
+  --bb-holo: linear-gradient(110deg,
+    var(--bb-holo-1) 0%,
+    var(--bb-holo-2) 28%,
+    var(--bb-holo-3) 52%,
+    var(--bb-holo-1) 76%,
+    var(--bb-holo-2) 100%);
+
+  /* ── Colores por jugador (override en JS si cambia desde DB) ── */
+  --bb-p-dari:  var(--bb-cobalt);
+  --bb-p-kmi:   var(--bb-tomate);
+  --bb-p-blopa: var(--bb-gold);
+  --bb-p-pela:  var(--bb-pasto);
+
+  /* ── Tipografía ──────────────────────────────────────── */
+  --bb-display: 'Anton', sans-serif;
+  --bb-modern:  'Bricolage Grotesque', sans-serif;
+  --bb-ui:      'Space Grotesk', system-ui, sans-serif;
+  --bb-mono:    'Space Mono', ui-monospace, monospace;
+  --bb-script:  'Caveat', cursive;
+
+  /* ── Hard-shadow system (parte clave del look BB) ────── */
+  --bb-shadow:    4px 4px 0 var(--bb-ink);
+  --bb-shadow-sm: 3px 3px 0 var(--bb-ink);
+  --bb-shadow-xs: 2px 2px 0 var(--bb-ink);
+  --bb-border:    2px solid var(--bb-ink);
+  --bb-border-sm: 1.5px solid var(--bb-ink);
+
+  /* ── Estados de juego ─────────────────────────────────── */
+  --bb-state-pleno:   var(--bb-pasto);   /* +3x factor */
+  --bb-state-acierto: var(--bb-maroon);  /* +1x factor */
+  --bb-state-miss:    rgba(31, 26, 46, 0.28);
+  --bb-state-wo:      var(--bb-tomate);
+  --bb-state-live:    #E8442C;            /* pulso rojo cuando hay partido en curso */
+
+  /* ── Animation timings ────────────────────────────────── */
+  --bb-ease-out:  cubic-bezier(.16, 1, .3, 1);
+  --bb-ease-pop:  cubic-bezier(.34, 1.56, .64, 1);
+  --bb-fast:      .15s;
+  --bb-medium:    .3s;
+  --bb-slow:      .6s;
+  --bb-pulse:     1.4s;
+  --bb-confetti:  1.4s;
+
+  /* ── Z-index scale ────────────────────────────────────── */
+  --bb-z-header:   100;
+  --bb-z-overlay:  500;
+  --bb-z-toast:    900;
+  --bb-z-confetti: 950;
+  --bb-z-modal:    1000;
+
+  /* ── Layout ───────────────────────────────────────────── */
+  --bb-max-w:     1280px;
+  --bb-radius:    4px;
+  --bb-radius-sm: 3px;
+  --bb-radius-lg: 6px;
+}
+
+/* Modo data-saver (usuario con prefers-reduced-motion): bajamos confetti */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --bb-fast: 0.01s;
+    --bb-medium: 0.01s;
+    --bb-slow: 0.01s;
+    --bb-pulse: 0.01s;
+    --bb-confetti: 0.01s;
+  }
+}

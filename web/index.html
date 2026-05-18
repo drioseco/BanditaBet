@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bandita Bet · PRODE 2026</title>
+
+<!-- BB brand fonts -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:wght@500;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Caveat:wght@500;700&display=swap">
+
+<!-- BB stylesheets -->
+<link rel="stylesheet" href="./css/tokens.css">
+<link rel="stylesheet" href="./css/themes.css">
+<link rel="stylesheet" href="./css/app.css">
+<link rel="stylesheet" href="./css/game-fx.css">
+
+<!-- Aplicar tema guardado antes del render para evitar flash -->
+<script>
+(function(){
+  var t = localStorage.getItem('bb-theme');
+  if (t) document.documentElement.dataset.theme = t;
+})();
+</script>
+
+<!-- React + Babel solo para el logo -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin></script>
+</head>
+<body data-api-url="">
+
+<!-- ═══ HEADER ═══════════════════════════════════════ -->
+<div class="hdr">
+  <div class="logo-area">
+    <div id="logo-badge"></div>
+    <div class="logo-text">Bandita Bet<small>PRODE 2026 · XV ANIVERSARIO</small></div>
+  </div>
+  <nav class="nav">
+    <button class="nb on" onclick="bbGoTo('home', this)">Tabla</button>
+    <!-- "Fixtures" renombrado a "Partidos por jugar" — ver botón siguiente -->
+    <button class="nb" onclick="bbGoTo('fixtures', this)">Partidos</button>
+    <button class="nb" onclick="bbGoTo('picks', this)">Picks</button>
+    <button class="nb" onclick="bbGoTo('stats', this)">Stats</button>
+    <button class="nb" onclick="bbGoTo('admin', this)">Gestión</button>
+  </nav>
+  <div class="hdr-right">
+    <div class="bb-theme-picker" id="theme-picker">
+      <button class="bb-theme-dot" data-theme="papel"    title="Papel · Panini 90s"></button>
+      <button class="bb-theme-dot" data-theme="nocturna" title="Nocturna · Cancha de noche"></button>
+      <button class="bb-theme-dot" data-theme="bone"     title="Hueso · Sobrio"></button>
+      <button class="bb-theme-dot" data-theme="modern"   title="Modern · Sport-tech"></button>
+      <button class="bb-theme-dot" data-theme="wc26"     title="WC26 · World Cup 2026"></button>
+    </div>
+    <div id="hdr-live"></div>
+    <div id="hdr-sync"></div>
+    <div id="hdr-auth"></div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- ═══ HOME ═════════════════════════════════════════ -->
+<div id="s-home">
+  <div class="hero fu">
+    <div class="hero-pitch"></div>
+    <div class="hero-inner">
+      <div>
+        <div class="hero-eyebrow"><span class="blink"></span>Temporada 2026 · 15° Aniversario</div>
+        <div class="hero-title">La carrera<br><span class="hl">al título</span></div>
+        <div class="hero-sub" id="banner-sub">Cargando…</div>
+        <div class="hero-kpis" id="banner-kpis"></div>
+      </div>
+      <div class="prog-wrap">
+        <div class="prog-lbl">Temporada completada</div>
+        <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+        <div class="prog-pct" id="prog-pct">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">Clasificación · polla 2026</div><div class="sdiv-line"></div></div>
+  <div class="standings" id="standings">
+    <div class="std-head">
+      <span class="std-head-l"># · Jugador · Rendimiento · Logros</span>
+      <span class="std-head-r">Barra = puntos relativos al líder</span>
+    </div>
+  </div>
+
+  <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">Banditas FC · Plantel oficial</div><div class="sdiv-line"></div></div>
+  <div id="plantel-cards"></div>
+
+  <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">Logros · Cromos especiales</div><div class="sdiv-line"></div></div>
+  <div id="logros"></div>
+
+  <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">XP · Nivel · Misiones</div><div class="sdiv-line"></div></div>
+  <div id="misiones"></div>
+
+  <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">Picks pendientes</div><div class="sdiv-line"></div></div>
+  <div id="pending-picks"></div>
+
+  <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">Álbum de la temporada</div><div class="sdiv-line"></div></div>
+  <div id="album"></div>
+
+  <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">Carrera al título</div><div class="sdiv-line"></div></div>
+  <div class="race-wrap" id="tr-track"></div>
+
+  <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">Crónica · Última fecha</div><div class="sdiv-line"></div></div>
+  <div id="cronica-auto"></div>
+
+  <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">Crónicas Banditas FC</div><div class="sdiv-line"></div></div>
+  <div id="cronicas"></div>
+
+  <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">Momentos del torneo</div><div class="sdiv-line"></div></div>
+  <div class="narr" id="narr-feed"></div>
+</div>
+
+<!-- ═══ FIXTURES ═════════════════════════════════════ -->
+<div id="s-fixtures" class="hidden">
+  <div class="flt-row">
+    <span class="flt-lbl">Torneo:</span>
+    <button class="ft on" data-sheet="liga">Liga de Primera</button>
+    <button class="ft" data-sheet="experto">Partidos Experto</button>
+  </div>
+  <div class="flt-row" id="fec-filters"></div>
+  <div id="fixtures-list"></div>
+</div>
+
+<!-- ═══ PICKS ═════════════════════════════════════════ -->
+<div id="s-picks" class="hidden">
+  <div class="flt-row" id="picker-btns"></div>
+  <div class="flt-row">
+    <span class="flt-lbl">Torneo:</span>
+    <button class="ft on" data-pick-sheet="liga">Liga</button>
+    <button class="ft" data-pick-sheet="experto">Experto</button>
+  </div>
+  <div class="pick-profile" id="pick-profile"></div>
+  <div id="picks-body"></div>
+</div>
+
+<!-- ═══ STATS ═════════════════════════════════════════ -->
+<div id="s-stats" class="hidden">
+
+  <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">Pick de la temporada</div><div class="sdiv-line"></div></div>
+  <div id="stat-hero"></div>
+
+  <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">Premios raros</div><div class="sdiv-line"></div></div>
+  <div id="stat-awards"></div>
+
+  <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">Evolución de la polla</div><div class="sdiv-line"></div></div>
+  <div id="stat-evolution"></div>
+
+  <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">Calendario · ganador por fecha</div><div class="sdiv-line"></div></div>
+  <div id="stat-heatmap"></div>
+
+  <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">H2H · la rivalidad</div><div class="sdiv-line"></div></div>
+  <div id="stat-h2h"></div>
+
+  <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">Gemelos &amp; rivales</div><div class="sdiv-line"></div></div>
+  <div id="stat-pairs"></div>
+
+  <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">Tendencias de apuesta</div><div class="sdiv-line"></div></div>
+  <div id="stat-tendencias"></div>
+
+  <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">Marcadores favoritos</div><div class="sdiv-line"></div></div>
+  <div id="stat-marcadores"></div>
+
+  <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">Liga vs Experto</div><div class="sdiv-line"></div></div>
+  <div id="stat-split"></div>
+
+  <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">WO por jugador</div><div class="sdiv-line"></div></div>
+  <div class="wo-section">
+    <div class="wo-grid" id="wo-grid"></div>
+  </div>
+</div>
+
+<!-- ═══ ADMIN ═════════════════════════════════════════ -->
+<div id="s-admin" class="hidden">
+  <div class="agrid">
+    <div class="acard">
+      <div class="atitle">Cargar resultado</div>
+      <div class="fg"><label class="fl2">Torneo</label>
+        <select class="fi" id="a-sheet">
+          <option value="liga">Liga de Primera</option>
+          <option value="experto">Partidos Experto</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl2">Fixture</label>
+        <select class="fi" id="a-match"><option value="">— seleccionar —</option></select>
+      </div>
+      <div class="fg"><label class="fl2">Marcador final</label>
+        <div class="frow2">
+          <input type="number" class="fi" id="a-hs" placeholder="Local" min="0">
+          <div class="vsep2">—</div>
+          <input type="number" class="fi" id="a-as" placeholder="Visita" min="0">
+        </div>
+      </div>
+      <div class="fg"><label class="fl2">Factor resultado (opcional)</label>
+        <input type="number" class="fi" id="a-factor" placeholder="auto según resultado" step="0.01">
+      </div>
+      <button class="btn-a" id="btn-save-result">★ Confirmar resultado</button>
+    </div>
+    <div class="acard">
+      <div class="atitle">Agregar fixture</div>
+      <div class="fg"><label class="fl2">Torneo</label>
+        <select class="fi" id="n-sheet">
+          <option value="liga">Liga</option>
+          <option value="experto">Experto</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl2">Jornada / Torneo</label>
+        <input type="text" class="fi" id="n-fecha" placeholder="ej: Fecha 12 / Champions">
+      </div>
+      <div class="fg"><label class="fl2">Fixture</label>
+        <div class="frow2">
+          <input type="text" class="fi" id="n-home" placeholder="Local">
+          <div class="vsep2">vs</div>
+          <input type="text" class="fi" id="n-away" placeholder="Visita">
+        </div>
+      </div>
+      <div class="fg"><label class="fl2">Fecha</label><input type="date" class="fi" id="n-date"></div>
+      <div class="fg f3">
+        <div><label class="fl2">Fac L</label><input type="number" class="fi" id="n-fl" placeholder="2.5" step="0.01"></div>
+        <div><label class="fl2">Fac E</label><input type="number" class="fi" id="n-fe" placeholder="3.0" step="0.01"></div>
+        <div><label class="fl2">Fac V</label><input type="number" class="fi" id="n-fv" placeholder="2.8" step="0.01"></div>
+      </div>
+      <button class="btn-a" id="btn-add-match">+ Agregar fixture</button>
+    </div>
+
+    <div class="acard" style="grid-column:1/-1">
+      <div class="atitle">↳ Backend en Google Apps Script</div>
+      <div class="sync-help" id="sync-help-info">Cargando…</div>
+      <div class="sync-help">
+        <strong>Cómo funciona ahora:</strong>
+        El Sheet ES la base de datos. Apps Script (publicado como Web App) es el backend.
+        Cuando guardás un pick acá, el Apps Script escribe directamente en el Sheet — el cambio
+        es visible en el Excel en segundos. Cuando alguien edita el Sheet directamente, esta
+        webapp lo refleja en el próximo refresh. Setup: ver <code>apps-script/README.md</code>.
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<div class="toast" id="toast"></div>
+
+<!-- Theme picker logic -->
+<script>
+(function () {
+  var THEMES = ['papel','nocturna','bone','modern','wc26'];
+  var saved  = localStorage.getItem('bb-theme') || 'papel';
+
+  function applyTheme(key) {
+    document.documentElement.dataset.theme = key;
+    localStorage.setItem('bb-theme', key);
+    document.querySelectorAll('.bb-theme-dot').forEach(function (btn) {
+      btn.classList.toggle('active', btn.dataset.theme === key);
+    });
+  }
+
+  document.getElementById('theme-picker').addEventListener('click', function (e) {
+    var btn = e.target.closest('.bb-theme-dot');
+    if (!btn) return;
+    applyTheme(btn.dataset.theme);
+  });
+
+  applyTheme(saved);
+})();
+</script>
+
+<!-- BB Logo (React + Babel) -->
+<script type="text/babel" src="./js/logo.jsx?v=20260516qa10"></script>
+
+<!-- App (ES modules) -->
+<script type="module" src="./js/app.js?v=20260516qa10"></script>
+
+</body>
+</html>

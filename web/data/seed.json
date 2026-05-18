@@ -1,0 +1,52 @@
+{
+  "_note": "Seed mínimo para que el frontend arranque sin backend. La data real viene de /api/state cuando el backend está conectado a Supabase. Los IDs son placeholders ('seed-*').",
+  "now": "2026-05-10T00:00:00.000Z",
+  "last_synced_at": null,
+  "sync_sources": null,
+  "me": null,
+  "players": [
+    { "id": "seed-dari",  "name": "Dari",  "color": "#1E4FB8", "avatar_url": null, "is_admin": true },
+    { "id": "seed-kmi",   "name": "Kmi",   "color": "#E8442C", "avatar_url": null, "is_admin": false },
+    { "id": "seed-blopa", "name": "Blopa", "color": "#E8B33D", "avatar_url": null, "is_admin": false },
+    { "id": "seed-pela",  "name": "Pela",  "color": "#2E6B3A", "avatar_url": null, "is_admin": false }
+  ],
+  "competitions": [
+    { "id": "liga",    "name": "Liga de Primera",  "display_order": 1 },
+    { "id": "experto", "name": "Partidos Experto", "display_order": 2 }
+  ],
+  "rounds": [
+    { "id": "seed-r-l-12", "competition_id": "liga", "name": "Fecha 12", "display_order": 12 },
+    { "id": "seed-r-e-cl", "competition_id": "experto", "name": "Copa de la Liga", "display_order": 1 }
+  ],
+  "matches": [
+    {
+      "id": "seed-m-1", "round_id": "seed-r-l-12", "competition_id": "liga",
+      "match_date": "2026-05-17", "home_team": "Cobresal", "away_team": "U. de Chile",
+      "home_score": null, "away_score": null,
+      "factor_home": null, "factor_draw": null, "factor_away": null,
+      "result": null, "result_factor": null, "status": "scheduled"
+    },
+    {
+      "id": "seed-m-2", "round_id": "seed-r-l-12", "competition_id": "liga",
+      "match_date": "2026-05-17", "home_team": "Limache", "away_team": "U. Católica",
+      "home_score": null, "away_score": null,
+      "factor_home": null, "factor_draw": null, "factor_away": null,
+      "result": null, "result_factor": null, "status": "scheduled"
+    },
+    {
+      "id": "seed-m-3", "round_id": "seed-r-e-cl", "competition_id": "experto",
+      "match_date": "2026-05-13", "home_team": "Coquimbo Unido", "away_team": "Colo Colo",
+      "home_score": null, "away_score": null,
+      "factor_home": null, "factor_draw": null, "factor_away": null,
+      "result": null, "result_factor": null, "status": "scheduled"
+    }
+  ],
+  "picks": [],
+  "leaderboard": [
+    { "id": "seed-dari",  "name": "Dari",  "color": "#1E4FB8", "total_points": 0, "plenos": 0, "aciertos": 0, "wo": 0, "pj": 0 },
+    { "id": "seed-kmi",   "name": "Kmi",   "color": "#E8442C", "total_points": 0, "plenos": 0, "aciertos": 0, "wo": 0, "pj": 0 },
+    { "id": "seed-blopa", "name": "Blopa", "color": "#E8B33D", "total_points": 0, "plenos": 0, "aciertos": 0, "wo": 0, "pj": 0 },
+    { "id": "seed-pela",  "name": "Pela",  "color": "#2E6B3A", "total_points": 0, "plenos": 0, "aciertos": 0, "wo": 0, "pj": 0 }
+  ],
+  "insights": []
+}

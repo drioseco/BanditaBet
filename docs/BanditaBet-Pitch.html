@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>BanditaBet — Pitch Deck</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@400;600;700&family=Space+Mono:wght@400;700&family=Caveat:wght@500;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: #F2E3C2;
+    color: #1F1A2E;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 40px 32px;
+    line-height: 1.6;
+  }
+  @media print { body { background: white; padding: 20px; } }
+
+  /* ── Header ── */
+  .cover {
+    text-align: center;
+    padding: 40px 20px 32px;
+    border: 3px solid #1F1A2E;
+    border-radius: 8px;
+    margin-bottom: 36px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(90deg, rgba(31,26,46,.03) 0 48px, transparent 48px 96px);
+    pointer-events: none;
+  }
+  .cover-eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: .6rem; font-weight: 700;
+    letter-spacing: 3px; text-transform: uppercase;
+    opacity: .45; margin-bottom: 8px;
+  }
+  .cover h1 {
+    font-family: 'Anton', sans-serif;
+    font-size: 3.2rem; letter-spacing: -1px;
+    line-height: .95;
+  }
+  .cover h1 em {
+    display: block;
+    font-family: 'Caveat', cursive;
+    font-size: 1.6rem; font-weight: 700;
+    letter-spacing: 0; color: #8C1D2F;
+    margin-top: 4px;
+  }
+  .cover-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: .65rem; letter-spacing: 1px;
+    margin-top: 12px; opacity: .55;
+  }
+  .players-row {
+    display: flex; justify-content: center; gap: 16px;
+    margin-top: 20px;
+  }
+  .p-chip {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 14px; border-radius: 99px;
+    border: 2px solid; font-weight: 700; font-size: .8rem;
+  }
+  .p-chip img {
+    width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
+    border: 1.5px solid;
+  }
+  .url-box {
+    font-family: 'Space Mono', monospace;
+    font-size: .72rem; background: #1F1A2E; color: #E8B33D;
+    padding: 10px 18px; border-radius: 4px;
+    display: block; text-align: center; margin: 20px auto 0;
+    max-width: 500px; letter-spacing: .5px;
+  }
+
+  /* ── Sections ── */
+  h2 {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.5rem; letter-spacing: .5px;
+    margin-top: 40px; margin-bottom: 14px;
+    padding-bottom: 4px;
+    border-bottom: 2.5px solid #1F1A2E;
+  }
+  h2 span { font-family: 'Caveat', cursive; font-weight: 700; color: #8C1D2F; font-size: 1.1rem; }
+  h3 {
+    font-size: .95rem; font-weight: 700;
+    margin-top: 18px; margin-bottom: 6px;
+  }
+  p, li { margin-bottom: 8px; font-size: .88rem; }
+  ul, ol { padding-left: 20px; }
+
+  .card {
+    background: white;
+    border: 1.5px solid rgba(31,26,46,.1);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin: 14px 0;
+    box-shadow: 3px 3px 0 rgba(31,26,46,.06);
+  }
+  .card-title {
+    font-family: 'Anton', sans-serif;
+    font-size: 1rem; letter-spacing: .5px;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-title .ico { font-size: 1.3rem; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+
+  table {
+    width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .82rem;
+  }
+  th, td { border: 1px solid rgba(31,26,46,.15); padding: 6px 10px; text-align: left; }
+  th { background: #1F1A2E; color: #F2E3C2; font-weight: 600; font-size: .72rem; letter-spacing: .5px; }
+
+  .highlight {
+    background: rgba(232,178,61,.12);
+    border-left: 4px solid #E8B33D;
+    padding: 12px 16px; margin: 14px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: .85rem;
+  }
+  .stat-box {
+    text-align: center; padding: 14px 8px;
+    background: white; border: 1.5px solid rgba(31,26,46,.1);
+    border-radius: 6px;
+  }
+  .stat-n {
+    font-family: 'Anton', sans-serif;
+    font-size: 2rem; line-height: 1;
+  }
+  .stat-l {
+    font-family: 'Space Mono', monospace;
+    font-size: .5rem; letter-spacing: 1.5px;
+    text-transform: uppercase; opacity: .45; margin-top: 4px;
+  }
+  .phase {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px dashed rgba(31,26,46,.12);
+  }
+  .phase:last-child { border-bottom: none; }
+  .phase-num {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.8rem; line-height: 1;
+    color: #8C1D2F; flex-shrink: 0; width: 36px;
+  }
+  .phase-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: .5rem; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 1px 6px; border-radius: 2px;
+    display: inline-block; margin-bottom: 4px;
+  }
+  .phase-tag.done { background: #2E6B3A; color: white; }
+  .phase-tag.partial { background: #E8B33D; color: #1F1A2E; }
+  .phase-tag.todo { background: rgba(31,26,46,.12); color: rgba(31,26,46,.5); }
+  .footer {
+    text-align: center; margin-top: 48px; padding-top: 20px;
+    border-top: 2px solid rgba(31,26,46,.15);
+    font-size: .75rem; opacity: .5;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- COVER -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-eyebrow">Polla de futbol privada</div>
+  <h1>BANDITA BET<em>Prode 2026 &middot; XV Aniversario</em></h1>
+  <div class="cover-sub">4 amigos &middot; 15 anos &middot; 1 polla &middot; 0 excusas</div>
+  <div class="players-row">
+    <span class="p-chip" style="border-color:#1E4FB8;color:#1E4FB8"><img src="../web/img/characters/dari.png" style="border-color:#1E4FB8">Dari</span>
+    <span class="p-chip" style="border-color:#E8442C;color:#E8442C"><img src="../web/img/characters/kmi.png" style="border-color:#E8442C">Kmi</span>
+    <span class="p-chip" style="border-color:#E8B33D;color:#E8B33D"><img src="../web/img/characters/blopa.png" style="border-color:#E8B33D">Blopa</span>
+    <span class="p-chip" style="border-color:#2E6B3A;color:#2E6B3A"><img src="../web/img/characters/pela.png" style="border-color:#2E6B3A">Pela</span>
+  </div>
+  <div class="url-box">https://banditabet-kelpie-a4cd33.netlify.app/</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- QUE ES -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>QUE ES ESTO <span>&middot; la idea</span></h2>
+<p>BanditaBet es nuestra polla de futbol privada hecha app. Cada uno predice marcadores exactos antes de que se jueguen los partidos. Cuando termina el partido, el sistema calcula puntos automaticamente &mdash; y la app lo convierte en una experiencia de album, cromos, misiones y cronicas deportivas.</p>
+<p>No es un Excel. No es un grupo de WhatsApp. Es una app real, con nombre, con tema, con alma.</p>
+
+<div class="highlight">
+  <strong>La premisa:</strong> Celebrar 15 anos de amistad con algo que dure toda la temporada. No un mensaje que se pierde &mdash; una plataforma que se queda.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- COMO FUNCIONA -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>COMO FUNCIONA <span>&middot; en 30 segundos</span></h2>
+<div class="grid-3">
+  <div class="card">
+    <div class="card-title"><span class="ico">1</span> Elegis quien sos</div>
+    <p>Entras a la pagina, tocas tu foto de perfil. Se guarda en el browser. Sin contrasena, sin login &mdash; confiamos en la cancha.</p>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ico">2</span> Pones tu pick</div>
+    <p>Vas a "Picks", elegis el marcador que crees para cada partido. Lo guardas y listo. Antes de que arranque el partido &mdash; despues ya no se puede.</p>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ico">3</span> Ves como te fue</div>
+    <p>El sistema asigna puntos automaticamente. Pleno (marcador exacto) = mas puntos. Acierto (resultado correcto) = algunos puntos. WO (no marcaste) = verguenza publica.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- PUNTUACION -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>PUNTUACION <span>&middot; como se gana</span></h2>
+<table>
+  <tr><th>Resultado</th><th>Que significa</th><th>Puntos</th></tr>
+  <tr><td><strong>P &middot; Pleno</strong></td><td>Marcador exacto (ej: pusiste 2-1 y fue 2-1)</td><td>Factor del resultado &times; base = maximo</td></tr>
+  <tr><td><strong>Ac &middot; Acierto</strong></td><td>Acertaste quien gano/empato pero no el score</td><td>Puntos parciales</td></tr>
+  <tr><td><strong>&times; &middot; Miss</strong></td><td>Le erraste a todo</td><td>0</td></tr>
+  <tr><td><strong>WO</strong></td><td>No pusiste pick a tiempo</td><td>0 + queda registrado para siempre</td></tr>
+</table>
+<div class="highlight">
+  <strong>El factor:</strong> Cada resultado tiene una probabilidad. Si acertas un resultado improbable (factor alto), ganas mucho mas. Acertar un 0-0 en un Boca-River paga mas que acertar un 3-0 del primero contra el ultimo.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- QUE TIENE -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>TODO LO QUE TIENE <span>&middot; feature por feature</span></h2>
+
+<h3>Tab: Tabla (Home)</h3>
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title"><span class="ico">🏆</span> Clasificacion</div>
+    <p>Ranking en vivo con barra de rendimiento proporcional al lider, % efectividad, plenos, aciertos, WOs y badges de logros. Se actualiza solo cada vez que se carga un resultado.</p>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ico">🃏</span> Plantel Panini</div>
+    <p>4 cromos coleccionables estilo Panini con foto real, stats de fantasia (VISION 88, GAMBETA 82...), numero de camiseta, posicion y frase celebre de cada uno. Efecto foil holografico.</p>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ico">⭐</span> Logros desbloqueables</div>
+    <p>9 stickers tipo album. Cada logro muestra un cromo por jugador: en color si lo desbloqueo, en gris con "?" si no. Pleno solo, Doblete, Hat-trick, Racha, Jornada perfecta, Goleador, Sin WO...</p>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ico">⚡</span> XP + Misiones</div>
+    <p>Sistema de niveles (Promesa &rarr; Puntero &rarr; Crack &rarr; Figurita &rarr; Leyenda) con barra de XP animada. 9 misiones con progreso individual por jugador: Primera sangre, Doblete, Hat-trick, Racha x3/x5, Ojo clinico, Jornada perfecta, El goleador, Centurion.</p>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ico">📋</span> Picks pendientes</div>
+    <p>Matriz de proximos 8 partidos vs los 4 jugadores. Muestra quien ya marco y quien no, con badges de urgencia (rojo = menos de 6h, naranja = hoy, amarillo = esta semana). Click directo para marcar.</p>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ico">📒</span> Album de la temporada</div>
+    <p>Cada fecha cerrada se convierte en una pagina del album. Por partido, 4 stickers con estados: PLENO (foil dorado animado), ACIERTO (normal), MISS (greyscale), WO (silueta punteada). Top 2 fechas recientes.</p>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ico">🏃</span> Carrera al titulo</div>
+    <p>Cancha de futbol con 4 corredores SVG (camiseta del color de cada jugador) avanzando proporcionalmente a sus puntos. El lider tiene animacion de carrera. Copa del Mundo SVG en el arco como meta.</p>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ico">📰</span> Cronica automatica</div>
+    <p>Articulo periodistico generado automaticamente de la ultima jornada cerrada. Banner del ganador, lead narrativo, tabla partido por partido, ranking de la fecha, y "voces del vestuario" con citas personalizadas por jugador segun como le fue. Boton compartir (Web Share en celu, clipboard en desktop).</p>
+  </div>
+</div>
+
+<h3>Tab: Partidos</h3>
+<div class="card">
+  <div class="card-title"><span class="ico">⚽</span> Todos los partidos por jornada</div>
+  <p>Cada card muestra: equipos, marcador final, factor, y los picks de los 4 jugadores con su resultado (P/Ac/&times;/WO). Indicadores especiales: <strong>Sorpreson</strong> (upset con factor alto), <strong>Consenso</strong> (3-4 de acuerdo), <strong>"Solo lo vio"</strong> (unico pleno).</p>
+  <p><strong>Toggle de orden:</strong> boton "↓ Reciente / ↑ Antiguo" para ver los proximos partidos primero sin scrollear. Filtros por jornada y por torneo (Liga / Experto).</p>
+</div>
+
+<h3>Tab: Picks</h3>
+<div class="card">
+  <div class="card-title"><span class="ico">✏️</span> Vista individual + formulario</div>
+  <p>Todos tus picks con estado y puntos. Formulario para ingresar predicciones en partidos pendientes. Confetti al guardar.</p>
+</div>
+
+<h3>Tab: Stats</h3>
+<div class="card">
+  <p>10 bloques de estadisticas con datos reales:</p>
+  <div class="grid-2" style="margin-top:10px">
+    <div><strong>Pick de la temporada</strong> &mdash; el pleno mas caro del ano</div>
+    <div><strong>Premios raros</strong> &mdash; El Profeta, El Bardo, El Optimista, El Cuidadoso, El Centrista, Racha caliente, Racha fria</div>
+    <div><strong>Evolucion</strong> &mdash; sparkline SVG con 4 series de puntos acumulados</div>
+    <div><strong>Calendario</strong> &mdash; quien gano cada fecha, en color</div>
+    <div><strong>H2H</strong> &mdash; matriz 4x4 de enfrentamientos directos</div>
+    <div><strong>Gemelos & rivales</strong> &mdash; quienes coinciden mas y quienes menos</div>
+    <div><strong>Tendencias</strong> &mdash; que resultado apuesta mas cada uno (L/E/V)</div>
+    <div><strong>Marcadores favoritos</strong> &mdash; top 3 scores recurrentes por jugador</div>
+  </div>
+</div>
+
+<h3>Tab: Gestion (Admin)</h3>
+<div class="card">
+  <p>Cargar resultados reales y agregar partidos nuevos. El factor se calcula automatico segun las cuotas base, o se puede poner manual.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- EXPERIENCIA -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>LA EXPERIENCIA <span>&middot; no es solo datos</span></h2>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title"><span class="ico">🎨</span> 5 temas visuales</div>
+    <p>Papel (Panini 90s), Nocturna (cancha de noche), Hueso (minimalista), Modern (sport-tech), WC26 (World Cup 2026). Se cambia con un click y se guarda.</p>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ico">🎊</span> Efectos de juego</div>
+    <p>Confetti al guardar picks. Countdowns en vivo. Badges animados. Toast notifications. Unlock banners cuando desbloqueas un logro.</p>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ico">👤</span> Perfil con foto</div>
+    <p>Modal de seleccion de jugador con fotos reales. La pill del header muestra tu foto + nombre. Sin login, sin contrasena.</p>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="ico">📱</span> Mobile-first</div>
+    <p>Disenado para que funcione bien en el celular. Tabla compacta con barras de rendimiento, layouts responsivos, Web Share API para compartir cronicas.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- XP + MISIONES -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>SISTEMA XP <span>&middot; gamificacion</span></h2>
+
+<div class="grid-2">
+  <div>
+    <h3>Como se gana XP</h3>
+    <table>
+      <tr><th>Accion</th><th>XP</th></tr>
+      <tr><td>Pleno exacto</td><td>+10</td></tr>
+      <tr><td>Pleno solo (unico en acertar)</td><td>+5 bonus</td></tr>
+      <tr><td>Goleador (pleno en 4+ goles)</td><td>+3 bonus</td></tr>
+      <tr><td>Acierto resultado</td><td>+5</td></tr>
+      <tr><td>Racha 3+ aciertos</td><td>+5 bonus</td></tr>
+      <tr><td>Racha 5+ aciertos</td><td>+15 bonus</td></tr>
+    </table>
+  </div>
+  <div>
+    <h3>Niveles</h3>
+    <table>
+      <tr><th>XP</th><th>Nivel</th><th></th></tr>
+      <tr><td>0</td><td>Promesa</td><td>⚽</td></tr>
+      <tr><td>30</td><td>Puntero</td><td>🥇</td></tr>
+      <tr><td>80</td><td>Crack</td><td>⚡</td></tr>
+      <tr><td>160</td><td>Figurita</td><td>★</td></tr>
+      <tr><td>300</td><td>Leyenda</td><td>👑</td></tr>
+    </table>
+  </div>
+</div>
+
+<h3>9 Misiones</h3>
+<table>
+  <tr><th></th><th>Mision</th><th>Objetivo</th></tr>
+  <tr><td>🎯</td><td>Primera sangre</td><td>Tu primer pleno exacto</td></tr>
+  <tr><td>⚡</td><td>Doblete</td><td>2 plenos en la misma jornada</td></tr>
+  <tr><td>🎩</td><td>Hat-trick</td><td>3 plenos en la misma jornada</td></tr>
+  <tr><td>🔥</td><td>Racha x3</td><td>3 aciertos consecutivos</td></tr>
+  <tr><td>🔥🔥</td><td>Racha x5</td><td>5 aciertos consecutivos</td></tr>
+  <tr><td>★</td><td>Ojo clinico</td><td>Unico en acertar un marcador</td></tr>
+  <tr><td>👑</td><td>Jornada perfecta</td><td>Todo P o Ac en una jornada</td></tr>
+  <tr><td>⚽</td><td>El goleador</td><td>Pleno en partido con 4+ goles</td></tr>
+  <tr><td>💯</td><td>Centurion</td><td>Llegar a 100 XP</td></tr>
+</table>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- STACK -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>COMO ESTA HECHO <span>&middot; bajo el capo</span></h2>
+<div class="card">
+  <p style="margin-bottom:12px">Cero frameworks, cero build steps, cero servidores que pagar. Puro ingenio bandita.</p>
+  <div class="grid-3">
+    <div class="stat-box">
+      <div class="stat-n" style="color:#2E6B3A">Sheets</div>
+      <div class="stat-l">Base de datos</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-n" style="color:#1E4FB8">Apps Script</div>
+      <div class="stat-l">Backend / API</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-n" style="color:#E8442C">Netlify</div>
+      <div class="stat-l">Hosting gratis</div>
+    </div>
+  </div>
+  <ul style="margin-top:14px">
+    <li><strong>Google Sheets</strong> como base de datos &mdash; los partidos, picks, cuotas y resultados estan en un spreadsheet compartido.</li>
+    <li><strong>Google Apps Script</strong> como API &mdash; un Web App que lee/escribe en el Sheet y devuelve JSON. Sin servidor, sin costo.</li>
+    <li><strong>HTML + CSS + JS puro</strong> &mdash; ES modules nativos del browser. Sin React, sin npm, sin build. Se edita y se sube.</li>
+    <li><strong>Netlify</strong> como hosting &mdash; drag-and-drop del ZIP, HTTPS gratis, CDN global.</li>
+    <li><strong>Costo total: $0/mes.</strong></li>
+  </ul>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- NUMEROS -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>EN NUMEROS <span>&middot; lo que se construyo</span></h2>
+<div class="grid-3" style="margin-top:16px">
+  <div class="stat-box"><div class="stat-n">5</div><div class="stat-l">Tabs / vistas</div></div>
+  <div class="stat-box"><div class="stat-n">10</div><div class="stat-l">Bloques de stats</div></div>
+  <div class="stat-box"><div class="stat-n">9</div><div class="stat-l">Logros</div></div>
+  <div class="stat-box"><div class="stat-n">9</div><div class="stat-l">Misiones</div></div>
+  <div class="stat-box"><div class="stat-n">5</div><div class="stat-l">Niveles XP</div></div>
+  <div class="stat-box"><div class="stat-n">5</div><div class="stat-l">Temas visuales</div></div>
+  <div class="stat-box"><div class="stat-n">2</div><div class="stat-l">Torneos (Liga + Experto)</div></div>
+  <div class="stat-box"><div class="stat-n">10</div><div class="stat-l">Rondas QA</div></div>
+  <div class="stat-box"><div class="stat-n">$0</div><div class="stat-l">Costo mensual</div></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- ROADMAP -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<h2>ROADMAP <span>&middot; que falta</span></h2>
+<div class="card">
+  <div class="phase">
+    <div class="phase-num">01</div>
+    <div>
+      <span class="phase-tag done">HECHO</span>
+      <h3>El Album &middot; experiencia Panini</h3>
+      <p>Plantel, cromos por fecha, logros desbloqueables, foil holografico, stickers greyscale.</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-num">02</div>
+    <div>
+      <span class="phase-tag done">HECHO</span>
+      <h3>El Club &middot; XP + misiones</h3>
+      <p>Sistema de niveles, 9 misiones con progreso, XP por accion, tarjetas de nivel por jugador.</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-num">03</div>
+    <div>
+      <span class="phase-tag done">HECHO</span>
+      <h3>El Relato &middot; cronica auto</h3>
+      <p>Articulo periodistico generado automaticamente, citas del vestuario, boton compartir.</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-num">04</div>
+    <div>
+      <span class="phase-tag todo">PENDIENTE</span>
+      <h3>El Broadcast &middot; modo pro</h3>
+      <p>Live ticker, sparklines en tiempo real, Power Rankings, predicciones con IA. La version ESPN.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- FOOTER -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="footer">
+  Bandita Bet &middot; PRODE 2026 &middot; XV Aniversario<br>
+  Dari &middot; Kmi &middot; Blopa &middot; Pela<br><br>
+  Hecho con carino, codigo y un poco de bardeo.
+</div>
+
+</body>
+</html>

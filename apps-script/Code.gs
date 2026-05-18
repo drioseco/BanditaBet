@@ -1,0 +1,514 @@
+/**
+ * ════════════════════════════════════════════════════════════════════
+ * BanditaBet · Backend completo en Apps Script
+ * ════════════════════════════════════════════════════════════════════
+ *
+ * Este archivo ES el backend. Vive dentro del Google Sheet de BanditaBet.
+ * El Sheet es la base de datos. Apps Script es la API.
+ *
+ * ENDPOINTS (Web App publicada):
+ *
+ *   GET  ?action=state                      → snapshot completo
+ *   GET  ?action=health                     → ok + last_synced_at
+ *   GET  ?action=sync-status                → metadata de sincronización
+ *
+ *   POST action=savePicks
+ *        player=Dari
+ *        picks=[{matchId,home_score,away_score},...]    (JSON-stringified)
+ *
+ *   POST action=setResult
+ *        matchId=<id>
+ *        home_score=2&away_score=1
+ *        factor=2.35                                    (opcional)
+ *
+ *   POST action=addMatch
+ *        competition_id=liga
+ *        round_name="Fecha 12"
+ *        match_date=2026-05-17
+ *        home_team=...&away_team=...
+ *        factor_home=2.5&factor_draw=3.1&factor_away=2.8
+ *
+ * SETUP (una vez):
+ *
+ *   1. En el Sheet → Extensiones → Apps Script.
+ *   2. Borrar el Code.gs por defecto, pegar este archivo.
+ *   3. Deploy → New deployment → Type: Web App.
+ *        Execute as: Me (tu cuenta)
+ *        Who has access: Anyone (con link)
+ *      Copiar la URL deployada (https://script.google.com/macros/s/.../exec).
+ *   4. Pegar esa URL en web/js/config.js como API_URL.
+ *
+ * NOTAS:
+ *
+ *   - Form-encoded POST (URLSearchParams) para evitar CORS preflight.
+ *   - matchId es determinístico: sha1(competition + home + away + date),
+ *     mismo formato que el script de import-v1 → migrable a otra DB después.
+ *   - Cada operación de escritura usa lock para evitar race conditions.
+ *   - El recálculo de puntos vive en este archivo (lo mismo que hacía
+ *     el trigger de Postgres en Supabase).
+ *
+ * ════════════════════════════════════════════════════════════════════
+ */
+
+// ── Configuración ──────────────────────────────────────────────────
+var SHEETS = {
+  liga:    { name: 'Liga de Primera',  headerRows: 2, parser: parseLigaRow,    writer: writeLigaCells },
+  experto: { name: 'Partidos Experto', headerRows: 2, parser: parseExpertoRow, writer: writeExpertoCells },
+};
+var PLAYERS = ['Dari', 'Kmi', 'Blopa', 'Pela'];
+var PLAYER_COLORS = { Dari: '#1E4FB8', Kmi: '#E8442C', Blopa: '#E8B33D', Pela: '#2E6B3A' };
+
+// ── Web App entry points ───────────────────────────────────────────
+function doGet(e) {
+  return jsonResp(handle((e.parameter && e.parameter.action) || 'state', e.parameter || {}));
+}
+
+function doPost(e) {
+  var p = e.parameter || {};
+  // Si llega application/json, parsear
+  if (e.postData && e.postData.type === 'application/json') {
+    try {
+      var body = JSON.parse(e.postData.contents || '{}');
+      for (var k in body) p[k] = body[k];
+    } catch (_) {}
+  }
+  return jsonResp(handle(p.action || 'savePicks', p));
+}
+
+function handle(action, p) {
+  try {
+    switch (action) {
+      case 'health':       return health_();
+      case 'state':        return getState_();
+      case 'sync-status':  return syncStatus_();
+      case 'savePicks':    return savePicks_(p);
+      case 'setResult':    return setResult_(p);
+      case 'addMatch':     return addMatch_(p);
+      default:             return { ok: false, error: 'unknown_action', got: action };
+    }
+  } catch (err) {
+    log_('[error]', action, err.message, err.stack);
+    return { ok: false, error: err.message };
+  }
+}
+
+function jsonResp(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ── Health / sync status ───────────────────────────────────────────
+function health_() {
+  return { ok: true, service: 'banditabet-gscript', time: new Date().toISOString() };
+}
+function syncStatus_() {
+  return { ok: true, last_synced_at: new Date().toISOString(), source: 'apps-script', live: true };
+}
+
+// ── getState_: snapshot completo del Sheet ─────────────────────────
+function getState_() {
+  var ss = SpreadsheetApp.getActive();
+  var allMatches = [];
+  var allPicks   = [];
+  var roundsMap  = {};
+
+  for (var compId in SHEETS) {
+    var cfg = SHEETS[compId];
+    var sheet = ss.getSheetByName(cfg.name);
+    if (!sheet) continue;
+    var values = sheet.getDataRange().getValues();
+    for (var i = cfg.headerRows; i < values.length; i++) {
+      var parsed = cfg.parser(values[i], compId, i);
+      if (!parsed) continue;
+      // Round dedupe
+      var roundName = parsed.round_name || 'Sin asignar';
+      var roundKey  = compId + '|' + roundName;
+      if (!roundsMap[roundKey]) {
+        roundsMap[roundKey] = {
+          id: detId_('round', compId, roundName),
+          competition_id: compId,
+          name: roundName,
+          display_order: Object.keys(roundsMap).filter(function(k){return k.indexOf(compId+'|')===0}).length + 1,
+        };
+      }
+      var matchId = detId_('match', compId, parsed.home_team, parsed.away_team, parsed.match_date);
+      allMatches.push({
+        id:             matchId,
+        round_id:       roundsMap[roundKey].id,
+        competition_id: compId,
+        match_date:     parsed.match_date,
+        home_team:      parsed.home_team,
+        away_team:      parsed.away_team,
+        venue:          parsed.venue || null,
+        home_score:     parsed.home_score,
+        away_score:     parsed.away_score,
+        factor_home:    parsed.factor_home,
+        factor_draw:    parsed.factor_draw,
+        factor_away:    parsed.factor_away,
+        result:         parsed.result,
+        result_factor:  parsed.result_factor,
+        status:         isPlayed_(parsed) ? 'finished' : 'scheduled',
+        _row:           i + 1,  // 1-based, útil para writers
+      });
+      // Picks
+      for (var pName in (parsed.picks || {})) {
+        var pk = parsed.picks[pName];
+        if (pk.home_score == null && pk.away_score == null) continue;
+        allPicks.push({
+          id:         detId_('pick', matchId, pName),
+          match_id:   matchId,
+          player_id:  detId_('player', pName),
+          player_name: pName,
+          home_score: pk.home_score,
+          away_score: pk.away_score,
+          points:     parsed.points ? parsed.points[pName] || 0 : 0,
+          status:     parsed.status_per_player ? (parsed.status_per_player[pName] || ' ') : ' ',
+          source:     'sheet',
+        });
+      }
+    }
+  }
+
+  // Leaderboard agregado
+  var leaderboard = PLAYERS.map(function (name) {
+    var total = 0, plenos = 0, aciertos = 0, wo = 0, pj = 0;
+    allMatches.forEach(function (m) {
+      if (!isPlayed_(m)) return;
+      var pk = allPicks.find(function (p) { return p.match_id === m.id && p.player_name === name; });
+      if (!pk || pk.home_score == null) { wo++; return; }
+      pj++;
+      total += Number(pk.points || 0);
+      var s = (pk.status || '').toString().trim();
+      if (s === 'P') plenos++;
+      else if (s === 'Ac') aciertos++;
+    });
+    return {
+      id: detId_('player', name),
+      name: name,
+      color: PLAYER_COLORS[name],
+      avatar_url: null,
+      total_points: +total.toFixed(2),
+      plenos: plenos, aciertos: aciertos, wo: wo, pj: pj,
+    };
+  });
+
+  return {
+    ok: true,
+    now: new Date().toISOString(),
+    last_synced_at: new Date().toISOString(),
+    sync_sources: 'apps-script',
+    me: null,    // (auth deshabilitada — modo "selector de jugador")
+    players: PLAYERS.map(function (name) {
+      return { id: detId_('player', name), name: name, color: PLAYER_COLORS[name], avatar_url: null, is_admin: name === 'Dari' };
+    }),
+    competitions: [
+      { id: 'liga',    name: 'Liga de Primera',  display_order: 1 },
+      { id: 'experto', name: 'Partidos Experto', display_order: 2 },
+    ],
+    rounds:      Object.keys(roundsMap).map(function (k) { return roundsMap[k]; }),
+    matches:     allMatches.map(function (m) { delete m._row; return m; }),
+    picks:       allPicks,
+    leaderboard: leaderboard.sort(function (a, b) { return b.total_points - a.total_points; }),
+    insights:    [],
+  };
+}
+
+// ── savePicks_: escribe picks al Sheet ─────────────────────────────
+function savePicks_(p) {
+  var playerName = p.player;
+  if (!playerName || PLAYERS.indexOf(playerName) < 0) return { ok: false, error: 'unknown_player' };
+
+  var picks = typeof p.picks === 'string' ? JSON.parse(p.picks) : (p.picks || []);
+  if (!picks.length) return { ok: false, error: 'no_picks' };
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    var ss = SpreadsheetApp.getActive();
+    var saved = 0, locked = 0, missing = 0;
+    // Cache: matchId → { compId, row }
+    var matchIndex = buildMatchIndex_(ss);
+
+    picks.forEach(function (pk) {
+      var loc = matchIndex[pk.matchId];
+      if (!loc) { missing++; return; }
+      var sheet = ss.getSheetByName(SHEETS[loc.compId].name);
+      // Verificar que el partido no esté ya cerrado (tiene marcador final)
+      var row = sheet.getRange(loc.row, 1, 1, sheet.getLastColumn()).getValues()[0];
+      var parsed = SHEETS[loc.compId].parser(row, loc.compId, loc.row - 1);
+      if (parsed && isPlayed_(parsed)) {
+        locked++;
+        return;
+      }
+      if (pk.home_score == null || pk.away_score == null || isNaN(parseInt(pk.home_score, 10)) || isNaN(parseInt(pk.away_score, 10))) {
+        missing++;
+        return;
+      }
+      SHEETS[loc.compId].writer(sheet, loc.row, playerName, parseInt(pk.home_score, 10), parseInt(pk.away_score, 10));
+      saved++;
+    });
+    return { ok: true, saved: saved, locked: locked, missing: missing };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ── setResult_: escribe marcador final y recalcula puntos ──────────
+function setResult_(p) {
+  var matchId = p.matchId;
+  var hs = parseInt(p.home_score, 10);
+  var as_ = parseInt(p.away_score, 10);
+  var factor = p.factor != null && p.factor !== '' ? parseFloat(p.factor) : null;
+  if (!matchId) return { ok: false, error: 'missing_matchId' };
+  if (isNaN(hs) || isNaN(as_)) return { ok: false, error: 'invalid_score' };
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    var ss = SpreadsheetApp.getActive();
+    var loc = buildMatchIndex_(ss)[matchId];
+    if (!loc) return { ok: false, error: 'match_not_found' };
+    var sheet = ss.getSheetByName(SHEETS[loc.compId].name);
+    var IDX = colIndexes_(loc.compId);
+
+    sheet.getRange(loc.row, IDX.hScore + 1).setValue(hs);
+    sheet.getRange(loc.row, IDX.aScore + 1).setValue(as_);
+
+    var resultLetter = hs > as_ ? 'L' : hs < as_ ? 'V' : 'E';
+    sheet.getRange(loc.row, IDX.result + 1).setValue(resultLetter);
+
+    // Recalcular puntos/status para los 4 jugadores
+    var row = sheet.getRange(loc.row, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var parsed = SHEETS[loc.compId].parser(row, loc.compId, loc.row - 1);
+    var resultFactor = factor != null && !isNaN(factor) ? factor : (
+      resultLetter === 'L' ? parsed.factor_home :
+      resultLetter === 'V' ? parsed.factor_away :
+                             parsed.factor_draw
+    );
+    sheet.getRange(loc.row, IDX.factor + 1).setValue(resultFactor != null && !isNaN(resultFactor) ? resultFactor : '');
+
+    PLAYERS.forEach(function (pName) {
+      var pk = parsed.picks[pName];
+      var pts = 0, st = ' ';
+      if (pk && pk.home_score != null && pk.away_score != null) {
+        if (pk.home_score === hs && pk.away_score === as_) {
+          pts = +(3 * (resultFactor || 0)).toFixed(2); st = 'P';
+        } else {
+          var pickResult = pk.home_score > pk.away_score ? 'L' : pk.home_score < pk.away_score ? 'V' : 'E';
+          if (pickResult === resultLetter) { pts = +(resultFactor || 0).toFixed(2); st = 'Ac'; }
+        }
+      }
+      sheet.getRange(loc.row, IDX.points[pName] + 1).setValue(pts);
+      sheet.getRange(loc.row, IDX.statuses[pName] + 1).setValue(st);
+    });
+
+    return { ok: true, matchId: matchId, home_score: hs, away_score: as_, result: resultLetter, result_factor: resultFactor };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ── addMatch_: agrega fixture al final del Sheet ───────────────────
+function addMatch_(p) {
+  var compId = p.competition_id;
+  if (!SHEETS[compId]) return { ok: false, error: 'unknown_competition' };
+  if (!p.home_team || !p.away_team || !p.match_date) return { ok: false, error: 'missing_fields' };
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    var sheet = SpreadsheetApp.getActive().getSheetByName(SHEETS[compId].name);
+    var IDX = colIndexes_(compId);
+    var rowArr = new Array(sheet.getLastColumn()).fill('');
+    if (compId === 'liga') {
+      rowArr[IDX.fecha]   = p.round_name || '';
+      rowArr[IDX.venue]   = p.venue || '';
+    } else {
+      rowArr[IDX.torneo]  = p.round_name || '';
+    }
+    rowArr[IDX.date]   = p.match_date;
+    rowArr[IDX.home]   = p.home_team;
+    rowArr[IDX.away]   = p.away_team;
+    if (p.factor_home != null) rowArr[IDX.fl] = parseFloat(p.factor_home);
+    if (p.factor_draw != null) rowArr[IDX.fe] = parseFloat(p.factor_draw);
+    if (p.factor_away != null) rowArr[IDX.fv] = parseFloat(p.factor_away);
+    sheet.appendRow(rowArr);
+    var newRow = sheet.getLastRow();
+    return {
+      ok: true,
+      match: {
+        id:             detId_('match', compId, p.home_team, p.away_team, p.match_date),
+        competition_id: compId,
+        match_date:     p.match_date,
+        home_team:      p.home_team,
+        away_team:      p.away_team,
+        _row:           newRow,
+      },
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ── Index: matchId → { compId, row } (rebuild cada operación) ──────
+function buildMatchIndex_(ss) {
+  var idx = {};
+  for (var compId in SHEETS) {
+    var cfg = SHEETS[compId];
+    var sheet = ss.getSheetByName(cfg.name);
+    if (!sheet) continue;
+    var values = sheet.getDataRange().getValues();
+    for (var i = cfg.headerRows; i < values.length; i++) {
+      var parsed = cfg.parser(values[i], compId, i);
+      if (!parsed) continue;
+      var mid = detId_('match', compId, parsed.home_team, parsed.away_team, parsed.match_date);
+      idx[mid] = { compId: compId, row: i + 1 };
+    }
+  }
+  return idx;
+}
+
+// ── Columnas (índices 0-based) por competition ─────────────────────
+function colIndexes_(compId) {
+  if (compId === 'liga') {
+    return {
+      fecha:   0,
+      venue:   1,
+      date:    2,
+      home:    4,
+      hScore:  5,
+      aScore:  6,
+      away:    7,
+      fl:      8,
+      fe:      9,
+      fv:     10,
+      picks: { Dari: { l: 11, v: 12 }, Kmi: { l: 13, v: 14 }, Blopa: { l: 15, v: 16 }, Pela: { l: 17, v: 18 } },
+      result:  19,
+      factor:  20,
+      points:  { Dari: 25, Kmi: 26, Blopa: 27, Pela: 28 },
+      statuses:{ Dari: 29, Kmi: 30, Blopa: 31, Pela: 32 },
+    };
+  }
+  // experto
+  return {
+    torneo:  1,
+    date:    2,
+    home:    3,
+    hScore:  4,
+    aScore:  5,
+    away:    6,
+    fl:      7,
+    fe:      8,
+    fv:      9,
+    picks: { Dari: { l: 10, v: 11 }, Kmi: { l: 12, v: 13 }, Blopa: { l: 14, v: 15 }, Pela: { l: 16, v: 17 } },
+    result:  18,
+    factor:  19,
+    points:  { Dari: 24, Kmi: 25, Blopa: 26, Pela: 27 },
+    statuses:{ Dari: 28, Kmi: 29, Blopa: 30, Pela: 31 },
+  };
+}
+
+// ── Parsers ────────────────────────────────────────────────────────
+function parseLigaRow(r, compId) {
+  if (!r[4] || !r[7]) return null;
+  return {
+    round_name:   str_(r[0]) || null,
+    venue:        str_(r[1]) || null,
+    match_date:   dateOnly_(r[2]),
+    home_team:    str_(r[4]),
+    home_score:   numOrNull_(r[5]),
+    away_score:   numOrNull_(r[6]),
+    away_team:    str_(r[7]),
+    factor_home:  numOrNull_(r[8]),
+    factor_draw:  numOrNull_(r[9]),
+    factor_away:  numOrNull_(r[10]),
+    picks: {
+      Dari:  { home_score: numOrNull_(r[11]), away_score: numOrNull_(r[12]) },
+      Kmi:   { home_score: numOrNull_(r[13]), away_score: numOrNull_(r[14]) },
+      Blopa: { home_score: numOrNull_(r[15]), away_score: numOrNull_(r[16]) },
+      Pela:  { home_score: numOrNull_(r[17]), away_score: numOrNull_(r[18]) },
+    },
+    result: str_(r[19]) || null,
+    result_factor: numOrNull_(r[20]),
+    points:  { Dari: numOrNull_(r[25]) || 0, Kmi: numOrNull_(r[26]) || 0, Blopa: numOrNull_(r[27]) || 0, Pela: numOrNull_(r[28]) || 0 },
+    status_per_player: { Dari: str_(r[29]), Kmi: str_(r[30]), Blopa: str_(r[31]), Pela: str_(r[32]) },
+  };
+}
+
+function parseExpertoRow(r, compId) {
+  if (!r[3] || !r[6]) return null;
+  return {
+    round_name:   str_(r[1]) || null,
+    venue:        null,
+    match_date:   dateOnly_(r[2]),
+    home_team:    str_(r[3]),
+    home_score:   numOrNull_(r[4]),
+    away_score:   numOrNull_(r[5]),
+    away_team:    str_(r[6]),
+    factor_home:  numOrNull_(r[7]),
+    factor_draw:  numOrNull_(r[8]),
+    factor_away:  numOrNull_(r[9]),
+    picks: {
+      Dari:  { home_score: numOrNull_(r[10]), away_score: numOrNull_(r[11]) },
+      Kmi:   { home_score: numOrNull_(r[12]), away_score: numOrNull_(r[13]) },
+      Blopa: { home_score: numOrNull_(r[14]), away_score: numOrNull_(r[15]) },
+      Pela:  { home_score: numOrNull_(r[16]), away_score: numOrNull_(r[17]) },
+    },
+    result: str_(r[18]) || null,
+    result_factor: numOrNull_(r[19]),
+    points:  { Dari: numOrNull_(r[24]) || 0, Kmi: numOrNull_(r[25]) || 0, Blopa: numOrNull_(r[26]) || 0, Pela: numOrNull_(r[27]) || 0 },
+    status_per_player: { Dari: str_(r[28]), Kmi: str_(r[29]), Blopa: str_(r[30]), Pela: str_(r[31]) },
+  };
+}
+
+// ── Writers: setean valores en las celdas ──────────────────────────
+function writeLigaCells(sheet, row, playerName, l, v) {
+  var IDX = colIndexes_('liga');
+  var c = IDX.picks[playerName];
+  sheet.getRange(row, c.l + 1).setValue(l != null ? l : '');
+  sheet.getRange(row, c.v + 1).setValue(v != null ? v : '');
+}
+function writeExpertoCells(sheet, row, playerName, l, v) {
+  var IDX = colIndexes_('experto');
+  var c = IDX.picks[playerName];
+  sheet.getRange(row, c.l + 1).setValue(l != null ? l : '');
+  sheet.getRange(row, c.v + 1).setValue(v != null ? v : '');
+}
+
+// ── ID determinístico ──────────────────────────────────────────────
+function detId_(/* ...parts */) {
+  var parts = Array.prototype.slice.call(arguments);
+  var raw = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_1, parts.join('|'));
+  var hex = raw.map(function (b) { return ('0' + ((b < 0 ? b + 256 : b)).toString(16)).slice(-2); }).join('');
+  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-5' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);
+}
+
+// ── Helpers ────────────────────────────────────────────────────────
+function dateOnly_(v) {
+  if (!v) return null;
+  if (v instanceof Date) return Utilities.formatDate(v, 'GMT', 'yyyy-MM-dd');
+  var s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  var m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) return m[3] + '-' + pad_(m[1]) + '-' + pad_(m[2]);
+  return null;
+}
+function pad_(n) { n = String(n); return n.length < 2 ? '0' + n : n; }
+function numOrNull_(v) {
+  if (v === '' || v === null || typeof v === 'undefined') return null;
+  var n = Number(v);
+  return isNaN(n) ? null : n;
+}
+function isPlayed_(m) {
+  if (!m) return false;
+  if (m.home_score == null || m.away_score == null) return false;
+  var rf = Number(m.result_factor);
+  return !isNaN(rf) && rf > 0;
+}
+function str_(v) { return v == null ? '' : String(v).trim(); }
+function log_(/* ...args */) { try { console.log.apply(console, arguments); } catch (_) {} }
+
+// ── Test desde el editor de Apps Script (clic "Run" en alguna) ─────
+function test_health()   { log_(JSON.stringify(health_(),   null, 2)); }
+function test_state()    { log_(JSON.stringify(getState_(), null, 2).slice(0, 4000)); }
+function test_status()   { log_(JSON.stringify(syncStatus_(),null, 2)); }

@@ -1,0 +1,30 @@
+<!--
+BanditaBet · placeholder del HTML v1
+═══════════════════════════════════════════════════════════════════════
+Este archivo es un PLACEHOLDER. Para tener los 256 fixtures del v1
+cargados en local (sin esperar a Supabase + Apps Script), seguí estos
+3 pasos:
+
+1. Reemplazá este archivo con el HTML v1 completo (el que generaste
+   en el chat "Convertir excel en webapp interactiva"). Guardalo como
+   `web/v1-source.html` (mismo folder, distinto nombre).
+
+   ⚠️ El archivo destino se llama `v1-source.html`, no `v1-backup.html`.
+   El script de import busca específicamente ese nombre.
+
+2. Desde la raíz del proyecto, correr:
+       cd api
+       npm install      # si no lo hiciste antes
+       npm run import-v1
+
+3. El script genera dos archivos:
+       web/data/seed.json    ← el frontend ahora muestra los 256 fixtures
+       db/seed-v1.sql        ← pegá esto en Supabase SQL Editor para
+                                poblar la DB de una sola corrida.
+
+Esto es opcional. La fuente de verdad real son tu Google Sheet + el
+Apps Script. Cuando configures el sync, todos los fixtures llegan a
+Supabase automáticamente. Este import-v1 es solo para no quedarte sin
+data mientras configurás todo lo demás.
+═══════════════════════════════════════════════════════════════════════
+-->
