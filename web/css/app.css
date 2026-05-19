@@ -348,6 +348,52 @@ body {
 .ind-solo   { background: rgba(140,29,47,.06); color: var(--bb-maroon); border-color: rgba(140,29,47,.22); }
 .ind-urgent { background: rgba(232,68,44,.07); color: var(--bb-tomate); border-color: rgba(232,68,44,.22); }
 
+/* Strip de cuotas grandes — la "firma" del juego (qa14) */
+.fcard-odds {
+  border-top: 1px dashed rgba(31,26,46,.2);
+  display: grid; grid-template-columns: repeat(3,1fr);
+  background: linear-gradient(180deg, rgba(140,29,47,.06) 0%, rgba(140,29,47,.02) 100%);
+}
+.fco-cell {
+  padding: .55rem .4rem;
+  text-align: center;
+  border-right: 1px dashed rgba(31,26,46,.15);
+  position: relative;
+}
+.fco-cell:last-child { border-right: none; }
+.fco-lbl {
+  font-family: var(--bb-mono); font-size: .52rem; font-weight: 700;
+  letter-spacing: .4px; text-transform: uppercase;
+  color: rgba(31,26,46,.55);
+  margin-bottom: 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fco-val {
+  font-family: var(--bb-mono); font-size: 1.5rem; font-weight: 700;
+  line-height: 1;
+  color: var(--bb-maroon);
+  letter-spacing: -.5px;
+}
+.fco-cell.win {
+  background: rgba(232,180,44,.18);
+}
+.fco-cell.win .fco-val {
+  color: var(--bb-tomate);
+  text-shadow: 0 0 1px rgba(232,68,44,.2);
+}
+.fco-cell.win::after {
+  content: '★';
+  position: absolute; top: 2px; right: 4px;
+  font-size: .55rem; color: var(--bb-tomate);
+}
+.fcard-odds.played .fco-cell:not(.win) {
+  opacity: .5;
+}
+@media (max-width: 540px) {
+  .fco-val { font-size: 1.25rem; }
+  .fco-lbl { font-size: .48rem; }
+}
+
 /* Inline editor de cuotas faltantes (qa13) */
 .fcard-factors {
   border-top: 1px dashed rgba(31,26,46,.2);
@@ -595,6 +641,57 @@ select.fi { appearance: none; cursor: pointer; }
   background: var(--bb-cream); border-radius: 3px; border: 1px solid rgba(31,26,46,.12);
 }
 .sync-help strong { color: var(--bb-ink); display: block; margin-bottom: .2rem; font-size: .63rem; }
+
+/* Match-picker (lista clickeable de partidos por jornada) — qa14 */
+.fl2-toggle {
+  float: right; font-family: var(--bb-mono); font-size: .54rem;
+  text-transform: none; letter-spacing: 0;
+  display: inline-flex; align-items: center; gap: 4px;
+  color: rgba(31,26,46,.55);
+}
+.fl2-toggle input { cursor: pointer; margin: 0; }
+.fl2-toggle label { cursor: pointer; }
+.match-picker {
+  background: var(--bb-cream); border: var(--bb-border-sm);
+  border-color: rgba(31,26,46,.24); border-radius: 3px;
+  max-height: 260px; overflow-y: auto;
+  padding: 3px;
+}
+.mp-empty {
+  font-family: var(--bb-mono); font-size: .68rem; color: rgba(31,26,46,.45);
+  padding: .75rem .5rem; text-align: center;
+}
+.mp-row {
+  display: grid; grid-template-columns: 52px 1fr auto;
+  align-items: center; gap: .5rem;
+  padding: .4rem .5rem; border-radius: 2px;
+  cursor: pointer;
+  border-bottom: 1px dashed rgba(31,26,46,.1);
+  transition: background var(--bb-fast);
+}
+.mp-row:last-child { border-bottom: none; }
+.mp-row:hover { background: rgba(232,180,44,.12); }
+.mp-row.on {
+  background: rgba(140,29,47,.12);
+  box-shadow: inset 2px 0 0 var(--bb-maroon);
+}
+.mp-date {
+  font-family: var(--bb-mono); font-size: .58rem; font-weight: 700;
+  color: rgba(31,26,46,.55); text-transform: uppercase; letter-spacing: .3px;
+}
+.mp-teams {
+  font-family: var(--bb-ui); font-size: .74rem; font-weight: 600;
+  color: var(--bb-ink); line-height: 1.2;
+}
+.mp-teams em { font-style: normal; color: rgba(31,26,46,.4); font-size: .62rem; margin: 0 4px; }
+.mp-badge {
+  font-family: var(--bb-mono); font-size: .54rem; font-weight: 700;
+  padding: 2px 6px; border-radius: 2px; white-space: nowrap;
+  letter-spacing: .3px;
+}
+.mp-badge-empty { background: rgba(232,68,44,.12); color: var(--bb-tomate); border: 1px solid rgba(232,68,44,.3); }
+.mp-badge-f     { background: rgba(46,107,58,.1);   color: var(--bb-pasto);  border: 1px solid rgba(46,107,58,.25); }
+.mp-badge-r     { background: rgba(31,26,46,.08);   color: var(--bb-ink);    border: 1px solid rgba(31,26,46,.18); }
 
 /* ═══ TOAST ════════════════════════════════════════════ */
 .toast {

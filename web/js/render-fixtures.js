@@ -235,6 +235,28 @@ function buildFixtureCard(m, playerByName) {
       </div>
     </div>` : '';
 
+  // Strip de cuotas grandes y visibles — la "firma" del juego.
+  // Si el partido ya se jugó, resaltamos el factor del resultado (el que se cobra).
+  let winnerKey = null;
+  if (hr) {
+    winnerKey = m.home_score > m.away_score ? 'L' : m.home_score < m.away_score ? 'V' : 'E';
+  }
+  const oddsHTML = hasFactors(m) ? `
+    <div class="fcard-odds${hr ? ' played' : ''}">
+      <div class="fco-cell${winnerKey === 'L' ? ' win' : ''}">
+        <div class="fco-lbl">L · ${m.home_team}</div>
+        <div class="fco-val">${Number(m.factor_home).toFixed(2)}</div>
+      </div>
+      <div class="fco-cell${winnerKey === 'E' ? ' win' : ''}">
+        <div class="fco-lbl">Empate</div>
+        <div class="fco-val">${Number(m.factor_draw).toFixed(2)}</div>
+      </div>
+      <div class="fco-cell${winnerKey === 'V' ? ' win' : ''}">
+        <div class="fco-lbl">V · ${m.away_team}</div>
+        <div class="fco-val">${Number(m.factor_away).toFixed(2)}</div>
+      </div>
+    </div>` : '';
+
   card.className = `fcard${fut ? ' future' : ''}${!hr && h != null && h > 0 && h < 12 ? ' urgent' : ''}`;
   card.innerHTML = `
     <div class="fcard-match">
@@ -247,6 +269,7 @@ function buildFixtureCard(m, playerByName) {
       ${hr && m.result_factor != null ? `<div class="fcard-meta"><div class="fcard-fac">${Number(m.result_factor).toFixed(2)}<small>Factor</small></div></div>` : ''}
     </div>
     ${inds.length ? `<div class="fcard-inds">${inds.join('')}</div>` : ''}
+    ${oddsHTML}
     ${factorsHTML}
     <div class="fcard-picks">${pickCells}</div>`;
 

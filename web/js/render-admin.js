@@ -4,7 +4,8 @@ import { setMatchResult, addMatch as apiAddMatch, updateFactors as apiUpdateFact
 import { toast, fireConfetti } from './game-fx.js?v=20260516qa10';
 
 export function renderAdmin() {
-  fillAdminSel();
+  fillRoundSel('a');
+  fillRoundSel('f');
   refreshSyncStatus();
 
   const helpEl = document.getElementById('sync-help-info');
@@ -17,43 +18,132 @@ export function renderAdmin() {
 
   // wire up botones (solo una vez)
   if (!renderAdmin._wired) {
-    document.getElementById('a-sheet').onchange = fillAdminSel;
-    document.getElementById('a-match').onchange = fillAdminMatch;
+    document.getElementById('a-sheet').onchange = () => { fillRoundSel('a'); clearMatchList('a'); };
+    document.getElementById('a-round').onchange = () => fillMatchList('a');
     document.getElementById('btn-save-result').onclick = saveResult;
     document.getElementById('btn-add-match').onclick = addMatchHandler;
-    document.getElementById('f-sheet').onchange = fillFactorSel;
-    document.getElementById('f-match').onchange = fillFactorMatch;
+    document.getElementById('f-sheet').onchange = () => { fillRoundSel('f'); clearMatchList('f'); };
+    document.getElementById('f-round').onchange = () => fillMatchList('f');
+    document.getElementById('f-only-empty').onchange = () => fillMatchList('f');
     document.getElementById('btn-update-factors').onclick = updateFactorsHandler;
     renderAdmin._wired = true;
   }
-  fillFactorSel();
 }
 
-function fillAdminSel() {
-  const compId = document.getElementById('a-sheet').value;
+// ── Filtro jornada → lista clickeable (reemplaza el dropdown infinito) ──
+function fillRoundSel(prefix) {
+  const compId = document.getElementById(prefix + '-sheet').value;
+  const { matches, rounds } = getState();
+  const sel = document.getElementById(prefix + '-round');
+  const prev = sel.value;
+
+  // Solo jornadas que tienen al menos un partido en esta competencia
+  const matchedRoundIds = new Set(matches.filter(m => m.competition_id === compId).map(m => m.round_id));
+  const compRounds = rounds
+    .filter(r => r.competition_id === compId && matchedRoundIds.has(r.id))
+    .sort((a, b) => (b.display_order ?? 0) - (a.display_order ?? 0));
+
+  sel.innerHTML = '<option value="">— elegí jornada —</option>';
+  for (const r of compRounds) {
+    const o = document.createElement('option');
+    o.value = r.id;
+    o.textContent = r.name;
+    sel.appendChild(o);
+  }
+
+  // Default: la próxima jornada con partidos pendientes (sin resultado)
+  const nextRoundId = pickDefaultRound(compId);
+  if (prev && [...sel.options].some(o => o.value === prev)) {
+    sel.value = prev;
+  } else if (nextRoundId) {
+    sel.value = nextRoundId;
+  }
+  fillMatchList(prefix);
+}
+
+function pickDefaultRound(compId) {
+  const { matches, rounds } = getState();
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  // Partido pendiente más cercano a hoy
+  const pending = matches
+    .filter(m => m.competition_id === compId && (m.home_score == null || m.away_score == null))
+    .map(m => ({ m, d: m.match_date ? new Date(m.match_date + 'T12:00') : null }))
+    .filter(x => x.d)
+    .sort((a, b) => Math.abs(a.d - today) - Math.abs(b.d - today));
+  return pending.length ? pending[0].m.round_id : null;
+}
+
+function clearMatchList(prefix) {
+  const list = document.getElementById(prefix + '-match-list');
+  list.innerHTML = '<div class="mp-empty">Elegí una jornada arriba</div>';
+  document.getElementById(prefix + '-match').value = '';
+}
+
+function fillMatchList(prefix) {
+  const compId = document.getElementById(prefix + '-sheet').value;
+  const roundId = document.getElementById(prefix + '-round').value;
+  const list = document.getElementById(prefix + '-match-list');
+  if (!roundId) { clearMatchList(prefix); return; }
+
+  const onlyEmpty = prefix === 'f' && document.getElementById('f-only-empty')?.checked;
   const { matches, rounds } = getState();
   const data = matches
-    .filter(m => m.competition_id === compId)
+    .filter(m => m.competition_id === compId && m.round_id === roundId)
+    .filter(m => !onlyEmpty || !mHasFactors(m))
     .sort((a, b) => new Date(a.match_date) - new Date(b.match_date));
-  const sel = document.getElementById('a-match');
-  sel.innerHTML = '<option value="">— seleccionar —</option>';
+
+  if (!data.length) {
+    list.innerHTML = `<div class="mp-empty">${onlyEmpty ? 'Esta jornada ya tiene todas las cuotas cargadas ✓' : 'Sin partidos en esta jornada'}</div>`;
+    document.getElementById(prefix + '-match').value = '';
+    return;
+  }
+
+  list.innerHTML = '';
   for (const m of data) {
-    const r = rounds.find(rr => rr.id === m.round_id);
-    const o = document.createElement('option');
-    o.value = m.id;
-    o.textContent = `${r?.name || ''} · ${m.home_team} vs ${m.away_team} (${m.match_date})`;
-    sel.appendChild(o);
+    const row = document.createElement('div');
+    row.className = 'mp-row';
+    row.dataset.matchId = m.id;
+    const ds = m.match_date ? new Date(m.match_date + 'T12:00').toLocaleDateString('es', { day: 'numeric', month: 'short' }) : '—';
+    const hasF = mHasFactors(m);
+    const hasR = m.home_score != null && m.away_score != null;
+    const badge = hasR
+      ? `<span class="mp-badge mp-badge-r">${m.home_score}−${m.away_score}</span>`
+      : hasF ? `<span class="mp-badge mp-badge-f">${Number(m.factor_home).toFixed(2)}/${Number(m.factor_draw).toFixed(2)}/${Number(m.factor_away).toFixed(2)}</span>`
+             : `<span class="mp-badge mp-badge-empty">sin cuotas</span>`;
+    row.innerHTML = `
+      <span class="mp-date">${ds}</span>
+      <span class="mp-teams">${m.home_team} <em>vs</em> ${m.away_team}</span>
+      ${badge}`;
+    row.onclick = () => selectMatch(prefix, m.id);
+    list.appendChild(row);
+  }
+  document.getElementById(prefix + '-match').value = '';
+}
+
+function selectMatch(prefix, matchId) {
+  document.getElementById(prefix + '-match').value = matchId;
+  // marcar visualmente
+  const list = document.getElementById(prefix + '-match-list');
+  list.querySelectorAll('.mp-row').forEach(r => {
+    r.classList.toggle('on', r.dataset.matchId === matchId);
+  });
+  // poblar inputs del card correspondiente
+  const m = getState().matches.find(x => x.id === matchId);
+  if (!m) return;
+  if (prefix === 'a') {
+    document.getElementById('a-hs').value = m.home_score ?? '';
+    document.getElementById('a-as').value = m.away_score ?? '';
+    document.getElementById('a-factor').value = '';
+  } else {
+    document.getElementById('f-fl').value = m.factor_home ?? '';
+    document.getElementById('f-fe').value = m.factor_draw ?? '';
+    document.getElementById('f-fv').value = m.factor_away ?? '';
   }
 }
 
-function fillAdminMatch() {
-  const matchId = document.getElementById('a-match').value;
-  if (!matchId) return;
-  const m = getState().matches.find(x => x.id === matchId);
-  if (!m) return;
-  document.getElementById('a-hs').value = m.home_score ?? '';
-  document.getElementById('a-as').value = m.away_score ?? '';
-  document.getElementById('a-factor').value = '';
+function mHasFactors(m) {
+  const fl = Number(m.factor_home), fe = Number(m.factor_draw), fv = Number(m.factor_away);
+  return Number.isFinite(fl) && fl > 0 && Number.isFinite(fe) && fe > 0 && Number.isFinite(fv) && fv > 0;
 }
 
 async function saveResult() {
@@ -85,36 +175,10 @@ async function saveResult() {
       };
     }
     setState({ matches: ms });
+    fillMatchList('a');
   } catch (e) {
     toast('Error: ' + e.message, 'err');
   }
-}
-
-function fillFactorSel() {
-  const compId = document.getElementById('f-sheet').value;
-  const { matches, rounds } = getState();
-  const data = matches
-    .filter(m => m.competition_id === compId)
-    .sort((a, b) => new Date(a.match_date) - new Date(b.match_date));
-  const sel = document.getElementById('f-match');
-  sel.innerHTML = '<option value="">— seleccionar —</option>';
-  for (const m of data) {
-    const r = rounds.find(rr => rr.id === m.round_id);
-    const o = document.createElement('option');
-    o.value = m.id;
-    o.textContent = `${r?.name || ''} · ${m.home_team} vs ${m.away_team} (${m.match_date})`;
-    sel.appendChild(o);
-  }
-}
-
-function fillFactorMatch() {
-  const matchId = document.getElementById('f-match').value;
-  if (!matchId) return;
-  const m = getState().matches.find(x => x.id === matchId);
-  if (!m) return;
-  document.getElementById('f-fl').value = m.factor_home ?? '';
-  document.getElementById('f-fe').value = m.factor_draw ?? '';
-  document.getElementById('f-fv').value = m.factor_away ?? '';
 }
 
 async function updateFactorsHandler() {
@@ -144,6 +208,8 @@ async function updateFactorsHandler() {
       };
     }
     setState({ matches: ms });
+    // refrescar la lista (puede que el partido ya no aparezca con "solo sin cuotas")
+    fillMatchList('f');
   } catch (e) {
     toast('Error: ' + e.message, 'err');
   }
@@ -173,7 +239,8 @@ async function addMatchHandler() {
     toast(`✓ ${home} vs ${away} agregado`);
     setState({ matches: [...getState().matches, res.match] });
     ['n-home','n-away','n-fecha','n-fl','n-fe','n-fv'].forEach(id => document.getElementById(id).value = '');
-    fillAdminSel();
+    fillRoundSel('a');
+    fillRoundSel('f');
   } catch (e) {
     toast('Error: ' + e.message, 'err');
   }

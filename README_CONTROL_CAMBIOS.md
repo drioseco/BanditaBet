@@ -1376,3 +1376,75 @@ que devuelva las cuotas pre-partido. El flujo sería:
 
 Esto elimina la carga manual y mantiene las cuotas actualizadas según el mercado
 real. Quedará anotado como mejora para una próxima iteración.
+
+---
+
+## qa14 — UX: dropdowns reemplazados + cuotas prominentes en Partidos
+
+**Fecha:** 19 mayo 2026
+**Rama:** main
+
+### Qué era el problema
+
+1. **Dropdowns infinitos en Gestión:** las tarjetas "Cargar resultado" y "Editar
+   cuotas" tenían un `<select>` con TODOS los partidos del torneo (200+ items).
+   Encontrar uno específico era frustrante.
+2. **Cuotas invisibles en Partidos:** las Fac L/E/V no se mostraban en la tarjeta
+   del partido (solo aparecía `result_factor` cuando ya se había jugado). El juego
+   se basa en las cuotas pero no se notaba — parecía una polla normal.
+
+### Qué se construyó
+
+#### 1) Match-picker (selector de jornada + lista clickeable)
+
+Tanto en "Cargar resultado" como en "Editar cuotas" el dropdown se reemplazó por:
+- Un dropdown corto con solo las **jornadas** del torneo (~20 items, no 200).
+- Una **lista clickeable** de partidos de esa jornada (máx ~12 filas visibles).
+- Cada fila muestra: fecha · equipos · badge con cuotas actuales o "sin cuotas".
+- Default: la próxima jornada con partidos pendientes se selecciona sola.
+
+En "Editar cuotas" además se agregó un toggle "solo sin cuotas" (activado por
+default) — así ves al toque los partidos que necesitan cuotas cargadas.
+
+Al hacer clic en una fila, los inputs del card se pre-llenan con los valores
+actuales del partido. La fila seleccionada queda resaltada en maroon.
+
+#### 2) Strip de cuotas grande en cada tarjeta de Partidos
+
+Debajo de los indicadores y arriba de los picks de los jugadores, cada partido
+ahora muestra una franja con las 3 cuotas en **tipografía grande monospace**:
+
+```
+   L · River          Empate       V · Boca
+     2.10              3.40          3.20
+```
+
+- Para partidos no jugados: las 3 cuotas en color maroon, peso igual.
+- Para partidos ya jugados: la cuota del resultado se resalta en amarillo +
+  tomate, con una estrella ★. Las otras dos se atenúan al 50%.
+
+Esto le da identidad visual al juego: las cuotas son lo que define los puntos,
+no es una polla cualquiera.
+
+### Archivos modificados
+
+- `web/index.html` — los dos cards de Gestión ahora tienen `<select>` de jornada
+  + `<div class="match-picker">` + `<input type="hidden">` para el matchId.
+- `web/js/render-admin.js` — reescrito con `fillRoundSel`, `fillMatchList`,
+  `selectMatch`, `pickDefaultRound` y helpers. Se eliminaron `fillAdminSel`,
+  `fillAdminMatch`, `fillFactorSel`, `fillFactorMatch`.
+- `web/js/render-fixtures.js` — `buildFixtureCard` ahora inyecta `oddsHTML` con
+  el strip de las 3 cuotas, resaltando la ganadora si el partido se jugó.
+- `web/css/app.css` — bloques nuevos:
+  - "Strip de cuotas grandes — la firma del juego (qa14)"
+  - "Match-picker (lista clickeable de partidos por jornada) — qa14"
+
+### Backend
+
+No se tocó. Sigue usando los mismos endpoints (`setResult`, `updateFactors`).
+
+### Archivos clave (estado qa14)
+
+- `web/js/render-admin.js` — match-picker
+- `web/js/render-fixtures.js` — strip `.fcard-odds`
+- `web/css/app.css` — estilos `.match-picker`, `.mp-*`, `.fcard-odds`, `.fco-*`
