@@ -736,8 +736,8 @@ select.fi { appearance: none; cursor: pointer; }
 /* ═══ Escudos de equipos (qa16) ═══════════════════════════════════ */
 .ts {
   display: inline-flex; align-items: center; justify-content: center;
-  vertical-align: middle; flex-shrink: 0; overflow: hidden;
-  border-radius: 50%; background: var(--bb-cream);
+  vertical-align: middle; flex-shrink: 0;
+  background: transparent;
 }
 .ts-sm { width: 18px; height: 18px; margin: 0 4px; }
 .ts-md { width: 24px; height: 24px; margin: 0 6px; }
