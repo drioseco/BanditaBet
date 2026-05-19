@@ -309,6 +309,105 @@ function setResult_(p) {
   }
 }
 
+// ── onEdit: trigger automático cuando se edita directo en el Sheet ─
+// Si alguien escribe el marcador local/visita a mano (sin pasar por la app),
+// se calcula result + result_factor + puntos/status como si hubiese usado
+// "Cargar resultado" en Gestión. Idempotente: editar de nuevo recalcula.
+// Es un "simple trigger" (nombre `onEdit`) → corre automáticamente, sin
+// instalación manual. Solo dispara en ediciones de usuario (no en escrituras
+// del Web App).
+function onEdit(e) {
+  try {
+    if (!e || !e.range) return;
+    var range = e.range;
+    var sheet = range.getSheet();
+    var sheetName = sheet.getName();
+
+    // ¿Es una hoja de partidos?
+    var compId = null;
+    for (var k in SHEETS) { if (SHEETS[k].name === sheetName) compId = k; }
+    if (!compId) return;
+
+    var IDX = colIndexes_(compId);
+    var editedCol = range.getColumn() - 1; // 0-based
+
+    // Disparar recálculo si se editó hScore, aScore, o cualquiera de las cuotas
+    var watch = [IDX.hScore, IDX.aScore, IDX.fl, IDX.fe, IDX.fv];
+    if (watch.indexOf(editedCol) === -1) return;
+
+    var startRow = range.getRow();
+    if (startRow <= SHEETS[compId].headerRows) return; // header, ignorar
+    var numRows = range.getNumRows();
+    for (var i = 0; i < numRows; i++) {
+      recomputeRow_(sheet, startRow + i, compId);
+    }
+  } catch (err) {
+    log_('onEdit error: ' + (err && err.message));
+  }
+}
+
+// Recalcula result, result_factor, puntos y status de UNA fila.
+// Si el partido no tiene los 2 marcadores cargados, no toca nada.
+function recomputeRow_(sheet, rowNum, compId) {
+  var IDX = colIndexes_(compId);
+  var rowVals = sheet.getRange(rowNum, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var parsed = SHEETS[compId].parser(rowVals, compId, rowNum - 1);
+  if (!parsed) return;
+
+  var hs = parsed.home_score;
+  var as_ = parsed.away_score;
+  // Sin marcador completo → no actuamos (preserva lo que haya)
+  if (hs == null || as_ == null || isNaN(hs) || isNaN(as_)) return;
+
+  var resultLetter = hs > as_ ? 'L' : hs < as_ ? 'V' : 'E';
+  sheet.getRange(rowNum, IDX.result + 1).setValue(resultLetter);
+
+  var resultFactor = resultLetter === 'L' ? parsed.factor_home :
+                     resultLetter === 'V' ? parsed.factor_away :
+                                            parsed.factor_draw;
+  sheet.getRange(rowNum, IDX.factor + 1).setValue(
+    resultFactor != null && !isNaN(resultFactor) ? resultFactor : ''
+  );
+
+  PLAYERS.forEach(function (pName) {
+    var pk = parsed.picks[pName];
+    var pts = 0, st = ' ';
+    if (pk && pk.home_score != null && pk.away_score != null) {
+      if (pk.home_score === hs && pk.away_score === as_) {
+        pts = +(3 * (resultFactor || 0)).toFixed(2); st = 'P';
+      } else {
+        var pickResult = pk.home_score > pk.away_score ? 'L' :
+                         pk.home_score < pk.away_score ? 'V' : 'E';
+        if (pickResult === resultLetter) {
+          pts = +(resultFactor || 0).toFixed(2); st = 'Ac';
+        }
+      }
+    }
+    sheet.getRange(rowNum, IDX.points[pName] + 1).setValue(pts);
+    sheet.getRange(rowNum, IDX.statuses[pName] + 1).setValue(st);
+  });
+}
+
+// Recompute manual desde el editor: corré test_recompute_all() para
+// arreglar TODOS los partidos que tengan score pero no factor.
+function test_recompute_all() {
+  var ss = SpreadsheetApp.getActive();
+  var fixed = 0;
+  for (var compId in SHEETS) {
+    var sheet = ss.getSheetByName(SHEETS[compId].name);
+    if (!sheet) continue;
+    var last = sheet.getLastRow();
+    for (var r = SHEETS[compId].headerRows + 1; r <= last; r++) {
+      var before = sheet.getRange(r, colIndexes_(compId).factor + 1).getValue();
+      recomputeRow_(sheet, r, compId);
+      var after = sheet.getRange(r, colIndexes_(compId).factor + 1).getValue();
+      if (before !== after) fixed++;
+    }
+  }
+  log_('recompute_all: ' + fixed + ' filas actualizadas');
+  return { ok: true, fixed: fixed };
+}
+
 // ── updateFactors_: actualiza Fac L/E/V de un partido existente ────
 function updateFactors_(p) {
   var matchId = p.matchId;
