@@ -1448,3 +1448,95 @@ No se tocó. Sigue usando los mismos endpoints (`setResult`, `updateFactors`).
 - `web/js/render-admin.js` — match-picker
 - `web/js/render-fixtures.js` — strip `.fcard-odds`
 - `web/css/app.css` — estilos `.match-picker`, `.mp-*`, `.fcard-odds`, `.fco-*`
+
+---
+
+## qa15 — onEdit trigger: editar el Sheet a mano = mismo efecto que usar la app
+
+**Fecha:** 19 mayo 2026
+**Rama:** main
+
+### Qué era el problema
+
+Si Dari (o cualquier admin) escribía el marcador final de un partido **directo en el
+Google Sheet** (en lugar de usar Gestión → Cargar resultado en la app), pasaba esto:
+- `home_score` y `away_score` quedaban escritos ✅
+- `result` (L/E/V) quedaba vacío ❌
+- `result_factor` quedaba vacío ❌
+- Los puntos/status de los 4 jugadores no se calculaban ❌
+
+Como la app considera "jugado" solo si tiene `result_factor > 0`, el partido seguía
+apareciendo como "sin resultado aún" para siempre — aunque tuviera 3-2 escrito.
+
+Caso real: Palestino vs Limache (3-2 del 11 may) había sido cargado a mano en el
+Sheet y por eso seguía en la lista de "sin resultado" en la app.
+
+### Qué se construyó
+
+Un **simple trigger `onEdit(e)`** en el Apps Script que se dispara automáticamente
+cuando alguien edita una celda del Sheet directamente.
+
+Si la edición fue en:
+- la columna del marcador local (`hScore`),
+- la columna del marcador visita (`aScore`), o
+- cualquiera de las 3 columnas de cuotas (`fl`/`fe`/`fv`),
+
+el trigger ejecuta `recomputeRow_(sheet, row, compId)` que hace exactamente lo mismo
+que el endpoint `setResult_`:
+1. Calcula el resultado L/E/V según el marcador.
+2. Toma el factor correspondiente (Fac L si ganó local, Fac E si empate, Fac V si visita).
+3. Lo escribe en la columna `result_factor`.
+4. Recalcula los puntos y el status de los 4 jugadores según sus picks.
+
+**Resultado:** ahora da exactamente lo mismo si cargás un resultado desde Gestión
+de la app o si lo escribís a mano en el Sheet. Ambos caminos terminan con todas las
+columnas calculadas correctamente.
+
+### Detalles técnicos
+
+- **Simple trigger:** la función se llama literalmente `onEdit` → Google la registra
+  automáticamente, no hay que crear el trigger desde Triggers en la UI.
+- **No dispara en escrituras del Web App:** los `setValue` que hace el propio Apps
+  Script (cuando se llama via fetch desde la app) NO ejecutan `onEdit`. Solo edits
+  manuales del usuario en el UI del Sheet. Esto evita recursión infinita y trabajo
+  duplicado.
+- **Idempotente:** editar de nuevo recalcula. No hay riesgo de dañar datos.
+- **Edita masivos:** si pegás un rango de celdas, itera todas las filas afectadas.
+- **No actúa con marcador incompleto:** si solo cargás home_score sin away_score
+  (o vice versa), no hace nada — preserva lo que haya. Solo actúa cuando ambos
+  están presentes.
+
+### Reparación retroactiva
+
+Para arreglar los partidos que ya estaban "rotos" (cargados a mano sin factor),
+agregamos una función `test_recompute_all()` que itera todas las filas de las 2
+hojas y aplica `recomputeRow_` a cada una.
+
+Se ejecutó una vez desde el editor de Apps Script → resultado: **145 filas
+actualizadas**. Palestino-Limache (3-2) y todos los demás partidos huérfanos
+quedaron con su `result_factor` correctamente computado y los puntos calculados.
+
+### Archivos modificados
+
+- `apps-script/Code.gs` — agregadas funciones `onEdit`, `recomputeRow_`,
+  `test_recompute_all`. Inyectadas en producción vía Monaco + guardadas en Drive.
+
+### Backend
+
+El simple trigger no requiere deploy de nueva versión de Web App: corre desde el
+código guardado en el script, no desde la versión publicada. La versión publicada
+de la Web App (V3) sigue siendo la que sirve los endpoints `state`, `savePicks`,
+`setResult`, `addMatch`, `updateFactors`.
+
+### Archivos clave (estado qa15)
+
+- `apps-script/Code.gs` — funciones `onEdit`, `recomputeRow_`, `test_recompute_all`
+
+### Cómo verificar
+
+Si dudás, podés escribir cualquier marcador en el Sheet a mano (en Liga o Experto)
+y refrescar la app: el partido debería pasar a "Jugados" automáticamente y los
+puntos deberían aparecer.
+
+Para forzar un re-cálculo masivo (por ejemplo después de una migración), ejecutá
+`test_recompute_all()` desde el editor de Apps Script.
