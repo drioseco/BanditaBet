@@ -1228,3 +1228,80 @@ el futbol mundial. Aumenta la frecuencia de visitas diarias.
   o como sub-tabs dentro de Stats
 - Phase 4 Broadcast: live ticker interno de la Polla, sparklines, Power Rankings
 - Custom domain para bandita-bet.vercel.app
+
+---
+
+## qa12 — Editar cuotas (Fac L / E / V) desde Gestión
+
+**Fecha:** 18 mayo 2026
+**Rama:** main (commit `05e2903`)
+
+### Qué era el problema
+
+Las cuotas (Fac Local, Fac Empate, Fac Visita) de cada partido se podían ingresar al
+crear el fixture, pero no había forma de editarlas después si el admin se equivocaba
+o si las cuotas cambiaban antes del partido. La única alternativa era editar el Sheet
+a mano directamente.
+
+### Qué se construyó
+
+Una nueva tarjeta "Editar cuotas" en la vista Gestión que permite seleccionar cualquier
+partido existente y actualizar sus tres cuotas (Local, Empate, Visita) sin tocar nada
+más: el resultado, los picks de los jugadores, los puntos, y el resto de columnas del
+Sheet quedan exactamente igual.
+
+**Flujo de uso:**
+1. El admin va a Gestión → tarjeta "Editar cuotas (Fac L / E / V)"
+2. Selecciona el torneo (Liga / Experto) — el selector de partido se llena solo
+3. Selecciona el partido — los campos se pre-llenan con las cuotas actuales
+4. Modifica solo los valores que quiere cambiar
+5. Hace clic en "★ Actualizar cuotas"
+6. El Sheet se actualiza en segundos, y la app refleja el cambio de inmediato
+
+### Archivos modificados
+
+**`apps-script/Code.gs`** — nuevo endpoint `updateFactors_`
+
+Se agregó el caso `'updateFactors'` al switch de `doPost` y se implementó la función:
+- Recibe `matchId`, `factor_home`, `factor_draw`, `factor_away` (todos opcionales menos matchId)
+- Usa `buildMatchIndex_` para ubicar la fila exacta en el Sheet
+- Usa `colIndexes_` para saber qué columnas son Fac L/E/V según el torneo
+  (liga: cols 8/9/10, experto: cols 7/8/9, base 0)
+- Solo escribe las columnas de cuotas — ninguna otra columna del Sheet es tocada
+- Usa `LockService` para evitar escrituras simultáneas
+- Redeployado como Versión 3 (18 may 2026, 20:35) — activo en producción
+
+**`web/js/api.js`** — nueva función `updateFactors()`
+
+Exporta la función que llama al endpoint por POST con los tres factores. Si un factor
+es null (el admin lo dejó vacío), no se envía ese parámetro y el Sheet no lo toca.
+
+**`web/index.html`** — nueva tarjeta en la grilla de Gestión
+
+Tarjeta HTML con: selector de torneo, selector de fixture, tres inputs numéricos
+(Fac L / Fac E / Fac V), y botón "★ Actualizar cuotas". Va entre la tarjeta
+"Agregar fixture" y la tarjeta de info del backend.
+
+**`web/js/render-admin.js`** — tres nuevas funciones + wiring
+
+- `fillFactorSel()` — puebla el selector de partidos según el torneo elegido
+- `fillFactorMatch()` — al seleccionar un partido, pre-llena los inputs con las cuotas actuales
+- `updateFactorsHandler()` — valida, llama a la API, muestra toast, y hace merge
+  optimista en el state local (la UI se actualiza sin esperar un refresh completo)
+
+### Verificación post-deploy
+
+Después de redes-ployar el Apps Script se verificó contra la API de producción:
+- 394 partidos intactos
+- 850 picks sin cambios
+- Tabla de líderes igual
+- Cuotas de los partidos: correctas
+
+No hubo corrupción de datos.
+
+### Archivos clave (estado qa12)
+
+- `apps-script/Code.gs` — endpoint `updateFactors_` + case en doPost
+- `web/js/api.js` — `export async function updateFactors(...)`
+- `web/index.html` — tarjeta "Editar cuotas" en s-admin
+- `web/js/render-admin.js` — `fillFactorSel`, `fillFactorMatch`, `updateFactorsHandler`
