@@ -1540,3 +1540,92 @@ puntos deberían aparecer.
 
 Para forzar un re-cálculo masivo (por ejemplo después de una migración), ejecutá
 `test_recompute_all()` desde el editor de Apps Script.
+
+---
+
+## qa16 — Escudos de equipos en Partidos, Picks y Stats
+
+**Fecha:** 19 mayo 2026
+**Rama:** main
+
+### Qué era el problema
+
+Los nombres de los equipos aparecían como texto plano en toda la app. Funcionaba,
+pero no se sentía "app de fútbol" — parecía una planilla. El usuario pidió escudos
+para darle identidad visual.
+
+### Qué se construyó
+
+Sistema de escudos con CDN público + fallback automático:
+
+1. **Mapeo curado** en `web/data/team-logos.json` — diccionario nombre → ID de
+   api-sports.io. ~80 equipos mapeados de Liga, Experto y selecciones.
+2. **Módulo helper** `web/js/team-logos.js` con 3 funciones públicas:
+   - `loadTeamLogos()` — fetch del JSON una vez, cache en módulo.
+   - `teamShieldHTML(name, size)` — devuelve HTML del escudo. `size ∈ 'sm'|'md'|'lg'`.
+   - `teamShieldURL(name)` — solo URL, sin wrapper.
+3. **Fallback inteligente:** equipos sin mapeo muestran un círculo con las iniciales
+   del nombre en color hash determinístico (mismo color para mismo nombre siempre).
+   - 2+ palabras → iniciales (ej. "Manchester City" → "MC")
+   - 1 palabra → primeras 2 letras (ej. "Liverpool" → "LI")
+   - Países entre paréntesis se ignoran ("Real Madrid (ESP)" → "RM")
+4. **Carga en bootstrap:** `loadTeamLogos()` se invoca en paralelo a `bootstrapState()`
+   en `app.js`, así el JSON está cacheado antes del primer render.
+
+### Dónde se ven los escudos
+
+| Vista | Tamaño | Ubicación |
+|---|---|---|
+| Partidos · `fcard-home/away` | md (24px) | Junto al nombre del equipo |
+| Partidos · strip de cuotas | sm (14px) | Antes de "L · Palestino" y "V · Limache" |
+| Picks · `pc-match` | sm (18px) | A ambos lados del "vs" en cada tarjeta |
+| Stats · Pick de la Temporada | lg (44px) | Grandes a ambos lados del hero |
+
+### CDN usado
+
+`https://media.api-sports.io/football/teams/{id}.png`
+
+Sin auth, HTTPS, cobertura buena para liga chilena y clubes internacionales. Los logos
+se cargan lazy con `<img>` normales, así que no bloquean el render inicial. Si el CDN
+falla a futuro, el `onerror` del img dispara el fallback de iniciales.
+
+### Archivos modificados
+
+- `web/data/team-logos.json` (nuevo) — mapeo curado de ~80 equipos
+- `web/js/team-logos.js` (nuevo) — helpers `loadTeamLogos`, `teamShieldHTML`, `teamShieldURL`
+- `web/js/app.js` — `loadTeamLogos()` en paralelo al bootstrap
+- `web/js/render-fixtures.js` — shields en fcard-home/away + strip de cuotas
+- `web/js/render-picks.js` — shields en `.pc-match`
+- `web/js/render-stats.js` — shields en `.hero-pick-teams`
+- `web/css/app.css` — bloque "Escudos de equipos (qa16)" al final
+
+### Cómo agregar un equipo nuevo
+
+Editás `web/data/team-logos.json` y agregás una entrada:
+
+```json
+"Nombre exacto como aparece en el Sheet": { "id": 1234 }
+```
+
+Para conseguir el ID, buscás el equipo en api-sports.io o en su panel público de teams.
+Si no hay ID disponible, podés usar una URL custom:
+
+```json
+"Nombre del equipo": { "url": "https://upload.wikimedia.org/.../logo.png" }
+```
+
+Refrescás la app y el escudo aparece. No requiere cambios en JS.
+
+### Archivos clave (estado qa16)
+
+- `web/data/team-logos.json` — mapeo (single source of truth)
+- `web/js/team-logos.js` — helpers
+
+### Next steps fuera de scope
+
+- **Auto-descubrir IDs faltantes:** script que recorre `state.matches`, lista equipos
+  sin mapeo, y consulta una API para sugerir IDs.
+- **Self-hosting:** mirror de los logos en `web/assets/escudos/` para no depender de
+  api-sports.io si alguna vez bloquean hotlinking.
+- **Variante dark mode:** algunos escudos en PNG transparente se ven mal sobre fondo
+  oscuro — posible filter CSS o variante de URL.

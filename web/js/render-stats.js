@@ -4,6 +4,7 @@
 // marcadores favoritos, liga vs experto, premios raros, WO.
 // ════════════════════════════════════════════════════════════════════
 import { getState, hasRes } from './state.js?v=20260516qa10';
+import { teamShieldHTML } from './team-logos.js?v=20260519qa16';
 
 // ╔════════════════════════════════════════════════════════════════╗
 // ║  DATA — un solo paso por matches/picks; el resto consume        ║
@@ -223,7 +224,7 @@ function renderHero(s, root) {
           </div>
         </div>
         <div class="hero-pick-match">
-          <div class="hero-pick-teams">${match.home_team} <span class="hero-pick-vs">vs</span> ${match.away_team}</div>
+          <div class="hero-pick-teams">${teamShieldHTML(match.home_team, 'lg')}${match.home_team} <span class="hero-pick-vs">vs</span> ${match.away_team}${teamShieldHTML(match.away_team, 'lg')}</div>
           <div class="hero-pick-score">${match.home_score} — ${match.away_score}</div>
           <div class="hero-pick-sub">Pick exacto: <b>${pick.home_score}–${pick.away_score}</b> · cuota ${typeof factor === 'number' ? factor.toFixed(2) : factor}</div>
         </div>

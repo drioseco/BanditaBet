@@ -6,6 +6,7 @@ import { getState, setState, hasRes, hasPick, isFut, hoursUntil, mDate, TODAY } 
 import { CONFIG } from './config.js?v=20260516qa10';
 import { attachCountdown, toast } from './game-fx.js?v=20260516qa10';
 import { updateFactors as apiUpdateFactors } from './api.js?v=20260516qa10';
+import { teamShieldHTML } from './team-logos.js?v=20260519qa16';
 
 // Un partido "tiene cuotas" sólo si Fac L, E y V están cargados y son > 0.
 function hasFactors(m) {
@@ -244,7 +245,7 @@ function buildFixtureCard(m, playerByName) {
   const oddsHTML = hasFactors(m) ? `
     <div class="fcard-odds${hr ? ' played' : ''}">
       <div class="fco-cell${winnerKey === 'L' ? ' win' : ''}">
-        <div class="fco-lbl">L · ${m.home_team}</div>
+        <div class="fco-lbl">${teamShieldHTML(m.home_team, 'sm')}L · ${m.home_team}</div>
         <div class="fco-val">${Number(m.factor_home).toFixed(2)}</div>
       </div>
       <div class="fco-cell${winnerKey === 'E' ? ' win' : ''}">
@@ -252,7 +253,7 @@ function buildFixtureCard(m, playerByName) {
         <div class="fco-val">${Number(m.factor_draw).toFixed(2)}</div>
       </div>
       <div class="fco-cell${winnerKey === 'V' ? ' win' : ''}">
-        <div class="fco-lbl">V · ${m.away_team}</div>
+        <div class="fco-lbl">${teamShieldHTML(m.away_team, 'sm')}V · ${m.away_team}</div>
         <div class="fco-val">${Number(m.factor_away).toFixed(2)}</div>
       </div>
     </div>` : '';
@@ -262,9 +263,9 @@ function buildFixtureCard(m, playerByName) {
     <div class="fcard-match">
       <div class="fcard-date"><span class="fcd-d">${ds}</span></div>
       <div class="fcard-sb">
-        <div class="fcard-home">${m.home_team}</div>
+        <div class="fcard-home">${teamShieldHTML(m.home_team, 'md')}${m.home_team}</div>
         <div style="text-align:center">${scoreHTML}</div>
-        <div class="fcard-away">${m.away_team}</div>
+        <div class="fcard-away">${m.away_team}${teamShieldHTML(m.away_team, 'md')}</div>
       </div>
       ${hr && m.result_factor != null ? `<div class="fcard-meta"><div class="fcard-fac">${Number(m.result_factor).toFixed(2)}<small>Factor</small></div></div>` : ''}
     </div>

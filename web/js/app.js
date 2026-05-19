@@ -11,6 +11,7 @@ import { renderPicks }    from './render-picks.js?v=20260516qa10';
 import { renderStats }    from './render-stats.js?v=20260516qa10';
 import { renderAdmin }    from './render-admin.js?v=20260516qa10';
 import { toast, renderSyncPill, renderLivePill } from './game-fx.js?v=20260516qa10';
+import { loadTeamLogos } from './team-logos.js?v=20260519qa16';
 
 const VIEWS = ['home', 'fixtures', 'picks', 'stats', 'admin'];
 
@@ -119,7 +120,8 @@ async function init() {
   if (saved) setState({ picker: saved });
 
   try {
-    await bootstrapState();
+    // Bootstrap state y escudos en paralelo
+    await Promise.all([bootstrapState(), loadTeamLogos()]);
     if (!getState().picker && getState().players[0]) {
       setState({ picker: getState().players[0].name });
     }

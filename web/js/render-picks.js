@@ -5,6 +5,7 @@ import { getState, setState, hasRes, hoursUntil, mDate, TODAY } from './state.js
 import { CONFIG } from './config.js?v=20260516qa10';
 import { savePicks } from './api.js?v=20260516qa10';
 import { fireConfetti, toast } from './game-fx.js?v=20260516qa10';
+import { teamShieldHTML } from './team-logos.js?v=20260519qa16';
 
 const draft = {};   // { match_id: { home_score, away_score } }
 
@@ -93,7 +94,7 @@ function pickCardHTML(m, player, urgent) {
   const c = player.color;
   return `<div class="pcard${urgent ? ' urgent' : ''}">
     <div class="pc-hdr">
-      <div class="pc-match">${m.home_team} <span style="color:rgba(31,26,46,.28)">vs</span> ${m.away_team}</div>
+      <div class="pc-match">${teamShieldHTML(m.home_team, 'sm')}${m.home_team} <span style="color:rgba(31,26,46,.28)">vs</span> ${m.away_team}${teamShieldHTML(m.away_team, 'sm')}</div>
       <div class="pc-meta">${ds}${dl}</div>
     </div>
     <div class="pscores">

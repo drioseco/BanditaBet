@@ -731,3 +731,36 @@ select.fi { appearance: none; cursor: pointer; }
   .agrid { grid-template-columns: 1fr; }
   .wo-grid { grid-template-columns: 1fr 1fr; }
 }
+
+
+/* ═══ Escudos de equipos (qa16) ═══════════════════════════════════ */
+.ts {
+  display: inline-flex; align-items: center; justify-content: center;
+  vertical-align: middle; flex-shrink: 0; overflow: hidden;
+  border-radius: 50%; background: var(--bb-cream);
+}
+.ts-sm { width: 18px; height: 18px; margin: 0 4px; }
+.ts-md { width: 24px; height: 24px; margin: 0 6px; }
+.ts-lg { width: 44px; height: 44px; margin: 0 10px; }
+.ts img { width: 100%; height: 100%; object-fit: contain; }
+.ts-fallback {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%;
+  border-radius: 50%; color: #fff;
+  font-family: var(--bb-mono); font-weight: 700;
+  font-size: .55em; letter-spacing: -.3px;
+  line-height: 1;
+}
+.ts-sm .ts-fallback { font-size: 9px; }
+.ts-md .ts-fallback { font-size: 11px; }
+.ts-lg .ts-fallback { font-size: 16px; }
+
+/* alineación dentro de elementos existentes */
+.fcard-home, .fcard-away { display: inline-flex; align-items: center; gap: 4px; }
+.fcard-home { justify-content: flex-end; }
+.fcard-away { justify-content: flex-start; }
+.fco-lbl { display: inline-flex; align-items: center; justify-content: center; gap: 3px; }
+.fco-lbl .ts-sm { width: 14px; height: 14px; margin: 0; }
+.pc-match { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.hero-pick-teams { display: inline-flex; align-items: center; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
