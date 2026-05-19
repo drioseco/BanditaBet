@@ -102,3 +102,11 @@ export async function setMatchResult(matchId, { home_score, away_score, factor }
 export async function addMatch(payload) {
   return post('addMatch', payload);
 }
+
+export async function updateFactors(matchId, { factor_home, factor_draw, factor_away }) {
+  const params = { matchId };
+  if (factor_home != null) params.factor_home = factor_home;
+  if (factor_draw != null) params.factor_draw = factor_draw;
+  if (factor_away != null) params.factor_away = factor_away;
+  return post('updateFactors', params);
+}

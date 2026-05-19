@@ -207,6 +207,25 @@
       <button class="btn-a" id="btn-add-match">+ Agregar fixture</button>
     </div>
 
+    <div class="acard">
+      <div class="atitle">Editar cuotas (Fac L / E / V)</div>
+      <div class="fg"><label class="fl2">Torneo</label>
+        <select class="fi" id="f-sheet">
+          <option value="liga">Liga de Primera</option>
+          <option value="experto">Partidos Experto</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl2">Fixture</label>
+        <select class="fi" id="f-match"><option value="">— seleccionar —</option></select>
+      </div>
+      <div class="fg f3">
+        <div><label class="fl2">Fac L</label><input type="number" class="fi" id="f-fl" placeholder="2.5" step="0.01"></div>
+        <div><label class="fl2">Fac E</label><input type="number" class="fi" id="f-fe" placeholder="3.0" step="0.01"></div>
+        <div><label class="fl2">Fac V</label><input type="number" class="fi" id="f-fv" placeholder="2.8" step="0.01"></div>
+      </div>
+      <button class="btn-a" id="btn-update-factors">★ Actualizar cuotas</button>
+    </div>
+
     <div class="acard" style="grid-column:1/-1">
       <div class="atitle">↳ Backend en Google Apps Script</div>
       <div class="sync-help" id="sync-help-info">Cargando…</div>

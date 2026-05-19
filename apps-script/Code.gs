@@ -84,6 +84,7 @@ function handle(action, p) {
       case 'savePicks':    return savePicks_(p);
       case 'setResult':    return setResult_(p);
       case 'addMatch':     return addMatch_(p);
+      case 'updateFactors': return updateFactors_(p);
       default:             return { ok: false, error: 'unknown_action', got: action };
     }
   } catch (err) {
@@ -303,6 +304,32 @@ function setResult_(p) {
     });
 
     return { ok: true, matchId: matchId, home_score: hs, away_score: as_, result: resultLetter, result_factor: resultFactor };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ── updateFactors_: actualiza Fac L/E/V de un partido existente ────
+function updateFactors_(p) {
+  var matchId = p.matchId;
+  var fl = p.factor_home != null && p.factor_home !== '' ? parseFloat(p.factor_home) : null;
+  var fe = p.factor_draw != null && p.factor_draw !== '' ? parseFloat(p.factor_draw) : null;
+  var fv = p.factor_away != null && p.factor_away !== '' ? parseFloat(p.factor_away) : null;
+  if (!matchId) return { ok: false, error: 'missing_matchId' };
+  if (fl == null && fe == null && fv == null) return { ok: false, error: 'no_factors_provided' };
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    var ss = SpreadsheetApp.getActive();
+    var loc = buildMatchIndex_(ss)[matchId];
+    if (!loc) return { ok: false, error: 'match_not_found' };
+    var sheet = ss.getSheetByName(SHEETS[loc.compId].name);
+    var IDX = colIndexes_(loc.compId);
+    if (fl != null && !isNaN(fl)) sheet.getRange(loc.row, IDX.fl + 1).setValue(fl);
+    if (fe != null && !isNaN(fe)) sheet.getRange(loc.row, IDX.fe + 1).setValue(fe);
+    if (fv != null && !isNaN(fv)) sheet.getRange(loc.row, IDX.fv + 1).setValue(fv);
+    return { ok: true, matchId: matchId, factor_home: fl, factor_draw: fe, factor_away: fv };
   } finally {
     lock.releaseLock();
   }

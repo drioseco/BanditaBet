@@ -1,6 +1,6 @@
 // Admin view — cargar resultados, agregar fixtures, info de sync.
 import { getState, setState } from './state.js?v=20260516qa10';
-import { setMatchResult, addMatch as apiAddMatch, refreshSyncStatus } from './api.js?v=20260516qa10';
+import { setMatchResult, addMatch as apiAddMatch, updateFactors as apiUpdateFactors, refreshSyncStatus } from './api.js?v=20260516qa10';
 import { toast, fireConfetti } from './game-fx.js?v=20260516qa10';
 
 export function renderAdmin() {
@@ -21,8 +21,12 @@ export function renderAdmin() {
     document.getElementById('a-match').onchange = fillAdminMatch;
     document.getElementById('btn-save-result').onclick = saveResult;
     document.getElementById('btn-add-match').onclick = addMatchHandler;
+    document.getElementById('f-sheet').onchange = fillFactorSel;
+    document.getElementById('f-match').onchange = fillFactorMatch;
+    document.getElementById('btn-update-factors').onclick = updateFactorsHandler;
     renderAdmin._wired = true;
   }
+  fillFactorSel();
 }
 
 function fillAdminSel() {
@@ -78,6 +82,65 @@ async function saveResult() {
         result: res.result,
         result_factor: res.result_factor,
         status: res.result_factor ? 'finished' : ms[idx].status,
+      };
+    }
+    setState({ matches: ms });
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  }
+}
+
+function fillFactorSel() {
+  const compId = document.getElementById('f-sheet').value;
+  const { matches, rounds } = getState();
+  const data = matches
+    .filter(m => m.competition_id === compId)
+    .sort((a, b) => new Date(a.match_date) - new Date(b.match_date));
+  const sel = document.getElementById('f-match');
+  sel.innerHTML = '<option value="">— seleccionar —</option>';
+  for (const m of data) {
+    const r = rounds.find(rr => rr.id === m.round_id);
+    const o = document.createElement('option');
+    o.value = m.id;
+    o.textContent = `${r?.name || ''} · ${m.home_team} vs ${m.away_team} (${m.match_date})`;
+    sel.appendChild(o);
+  }
+}
+
+function fillFactorMatch() {
+  const matchId = document.getElementById('f-match').value;
+  if (!matchId) return;
+  const m = getState().matches.find(x => x.id === matchId);
+  if (!m) return;
+  document.getElementById('f-fl').value = m.factor_home ?? '';
+  document.getElementById('f-fe').value = m.factor_draw ?? '';
+  document.getElementById('f-fv').value = m.factor_away ?? '';
+}
+
+async function updateFactorsHandler() {
+  const matchId = document.getElementById('f-match').value;
+  if (!matchId) { toast('Selecciona un fixture', 'err'); return; }
+  const fl = parseFloat(document.getElementById('f-fl').value);
+  const fe = parseFloat(document.getElementById('f-fe').value);
+  const fv = parseFloat(document.getElementById('f-fv').value);
+  if (isNaN(fl) && isNaN(fe) && isNaN(fv)) { toast('Ingresa al menos una cuota', 'err'); return; }
+  try {
+    const res = await apiUpdateFactors(matchId, {
+      factor_home: isNaN(fl) ? null : fl,
+      factor_draw: isNaN(fe) ? null : fe,
+      factor_away: isNaN(fv) ? null : fv,
+    });
+    if (!res.ok) throw new Error(res.error || 'update_failed');
+    toast(`★ Cuotas actualizadas — L:${fl} E:${fe} V:${fv}`);
+    // merge optimista en state
+    const ms = getState().matches.slice();
+    const idx = ms.findIndex(x => x.id === matchId);
+    if (idx >= 0) {
+      ms[idx] = {
+        ...ms[idx],
+        ...(isNaN(fl) ? {} : { factor_home: fl }),
+        ...(isNaN(fe) ? {} : { factor_draw: fe }),
+        ...(isNaN(fv) ? {} : { factor_away: fv }),
       };
     }
     setState({ matches: ms });
