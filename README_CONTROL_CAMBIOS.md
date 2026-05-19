@@ -11,7 +11,7 @@ La app actual usa Google Sheets como base de datos y Apps Script como API. Netli
 URL publica:
 
 ```txt
-https://banditabet-kelpie-a4cd33.netlify.app/
+https://bandita-bet.vercel.app/
 ```
 
 Apps Script configurado en `web/js/config.js`:

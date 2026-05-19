@@ -3,7 +3,7 @@
 Webapp del prode/pollagol entre amigos. Liga chilena + ligas extranjeras + selecciones.
 4 jugadores: **Dari, Kmi, Blopa, Pela**. 15° aniversario.
 
-**▶ En vivo:** https://banditabet-kelpie-a4cd33.netlify.app/
+**▶ En vivo:** https://bandita-bet.vercel.app/
 
 ---
 

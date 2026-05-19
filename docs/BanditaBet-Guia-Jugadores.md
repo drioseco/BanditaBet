@@ -9,7 +9,7 @@ BanditaBet es la polla de fútbol privada de los 4 banditas. Cada uno predice ma
 
 **Jugadores:** Dari · Kmi · Blopa · Pela
 
-**URL:** https://banditabet-kelpie-a4cd33.netlify.app/
+**URL:** https://bandita-bet.vercel.app/
 
 ---
 
