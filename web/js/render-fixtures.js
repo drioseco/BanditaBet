@@ -4,7 +4,16 @@
 // ════════════════════════════════════════════════════════════════════
 import { getState, setState, hasRes, hasPick, isFut, hoursUntil, mDate, TODAY } from './state.js?v=20260516qa10';
 import { CONFIG } from './config.js?v=20260516qa10';
-import { attachCountdown } from './game-fx.js?v=20260516qa10';
+import { attachCountdown, toast } from './game-fx.js?v=20260516qa10';
+import { updateFactors as apiUpdateFactors } from './api.js?v=20260516qa10';
+
+// Un partido "tiene cuotas" sólo si Fac L, E y V están cargados y son > 0.
+function hasFactors(m) {
+  const fl = Number(m.factor_home), fe = Number(m.factor_draw), fv = Number(m.factor_away);
+  return Number.isFinite(fl) && fl > 0
+      && Number.isFinite(fe) && fe > 0
+      && Number.isFinite(fv) && fv > 0;
+}
 
 const PLAYERS = CONFIG.PLAYERS;
 
@@ -211,6 +220,21 @@ function buildFixtureCard(m, playerByName) {
     </div>`;
   }).join('');
 
+  // Inline editor de cuotas: aparece si el partido NO tiene cuotas, NO se jugó
+  // todavía, y hay un jugador logueado.
+  const { me } = getState();
+  const showFactorsEditor = !hr && !hasFactors(m) && me;
+  const factorsHTML = showFactorsEditor ? `
+    <div class="fcard-factors" data-match-id="${m.id}">
+      <div class="fcf-lbl">Cargar cuotas:</div>
+      <div class="fcf-inputs">
+        <input type="number" step="0.01" class="fcf-i" data-k="fl" placeholder="Fac L" value="${m.factor_home ?? ''}">
+        <input type="number" step="0.01" class="fcf-i" data-k="fe" placeholder="Fac E" value="${m.factor_draw ?? ''}">
+        <input type="number" step="0.01" class="fcf-i" data-k="fv" placeholder="Fac V" value="${m.factor_away ?? ''}">
+        <button class="fcf-save" data-match-id="${m.id}">★ Guardar</button>
+      </div>
+    </div>` : '';
+
   card.className = `fcard${fut ? ' future' : ''}${!hr && h != null && h > 0 && h < 12 ? ' urgent' : ''}`;
   card.innerHTML = `
     <div class="fcard-match">
@@ -223,6 +247,46 @@ function buildFixtureCard(m, playerByName) {
       ${hr && m.result_factor != null ? `<div class="fcard-meta"><div class="fcard-fac">${Number(m.result_factor).toFixed(2)}<small>Factor</small></div></div>` : ''}
     </div>
     ${inds.length ? `<div class="fcard-inds">${inds.join('')}</div>` : ''}
+    ${factorsHTML}
     <div class="fcard-picks">${pickCells}</div>`;
+
+  if (showFactorsEditor) {
+    const btn = card.querySelector('.fcf-save');
+    btn.onclick = () => saveInlineFactors(m.id, card, btn);
+  }
+
   return card;
+}
+
+async function saveInlineFactors(matchId, card, btn) {
+  const inputs = card.querySelectorAll('.fcf-i');
+  const vals = {};
+  inputs.forEach(i => { vals[i.dataset.k] = parseFloat(i.value); });
+  const { fl, fe, fv } = vals;
+  if (isNaN(fl) || isNaN(fe) || isNaN(fv)) {
+    toast('Completá las 3 cuotas (L / E / V)', 'err');
+    return;
+  }
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = 'Guardando…';
+  try {
+    const res = await apiUpdateFactors(matchId, {
+      factor_home: fl, factor_draw: fe, factor_away: fv,
+    });
+    if (!res.ok) throw new Error(res.error || 'update_failed');
+    toast(`★ Cuotas guardadas — L:${fl} E:${fe} V:${fv}`);
+    // merge optimista
+    const ms = getState().matches.slice();
+    const idx = ms.findIndex(x => x.id === matchId);
+    if (idx >= 0) {
+      ms[idx] = { ...ms[idx], factor_home: fl, factor_draw: fe, factor_away: fv };
+    }
+    setState({ matches: ms });
+    renderFixtures();
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+    btn.disabled = false;
+    btn.textContent = original;
+  }
 }

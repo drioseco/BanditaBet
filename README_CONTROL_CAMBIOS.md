@@ -1305,3 +1305,74 @@ No hubo corrupción de datos.
 - `web/js/api.js` — `export async function updateFactors(...)`
 - `web/index.html` — tarjeta "Editar cuotas" en s-admin
 - `web/js/render-admin.js` — `fillFactorSel`, `fillFactorMatch`, `updateFactorsHandler`
+
+---
+
+## qa13 — Cuotas inline en la vista Partidos
+
+**Fecha:** 18 mayo 2026
+**Rama:** main
+
+### Qué era el problema
+
+La tarjeta "Editar cuotas" de Gestión (qa12) servía, pero requería: abrir Gestión →
+elegir torneo → elegir el partido en un dropdown → cargar valores. Para partidos
+nuevos sin cuotas, era demasiado camino.
+
+Idealmente, cuando estás navegando los Partidos y ves uno sin cuotas, deberías
+poder llenarlas ahí mismo, igual que se llena un marcador local/visita.
+
+### Qué se construyó
+
+Un editor **inline** dentro de cada tarjeta de partido (en la vista Partidos) que
+aparece SOLO si:
+1. El partido aún no se jugó (no tiene resultado), Y
+2. Al partido le falta al menos una de las 3 cuotas (Fac L / Fac E / Fac V), Y
+3. Hay un jugador logueado.
+
+El editor muestra una franja amarilla con el texto "Cargar cuotas:" + 3 inputs
+(Fac L / Fac E / Fac V) + botón "★ Guardar". Cuando se guarda, el partido se
+re-renderiza al toque y la franja desaparece (porque ya tiene cuotas).
+
+**Permisos:** cualquier jugador logueado puede cargar cuotas faltantes (no solo
+admin). La regla es: si las cuotas faltan, cualquiera de los Banditas puede
+proponerlas. Si alguien quiere corregirlas después, lo hace desde Gestión →
+"Editar cuotas".
+
+### Archivos modificados
+
+**`web/js/render-fixtures.js`**
+- Nueva función `hasFactors(m)` — devuelve true si las 3 cuotas están cargadas y > 0.
+- En `buildFixtureCard`, se inyecta `factorsHTML` (la franja con inputs) cuando
+  corresponde, justo arriba de la grilla de picks.
+- Nueva función async `saveInlineFactors` que valida, llama a `updateFactors` del
+  Apps Script, hace merge optimista en el state y re-renderiza la vista.
+
+**`web/css/app.css`**
+- Nuevos estilos `.fcard-factors`, `.fcf-lbl`, `.fcf-inputs`, `.fcf-i`, `.fcf-save`
+  — franja amarilla, inputs compactos monospace, botón maroon que pasa a tomate
+  en hover.
+
+### Backend
+
+**No se tocó el Apps Script** — reutiliza el endpoint `updateFactors_` que ya
+existía desde qa12. Esto significa que esta feature es 100% frontend y no requirió
+redeploy del backend.
+
+### Archivos clave (estado qa13)
+
+- `web/js/render-fixtures.js` — `hasFactors`, `factorsHTML`, `saveInlineFactors`
+- `web/css/app.css` — bloque "Inline editor de cuotas faltantes (qa13)"
+
+### Next steps (registrados pero no implementados)
+
+**Auto-llenado de cuotas desde Coolbet u otra casa de apuestas:**
+
+Buscar API pública o scraper de Coolbet (u otra casa: Betsson, Latamwin, MisterTip)
+que devuelva las cuotas pre-partido. El flujo sería:
+1. Para cada partido sin cuotas, hacer match por nombre de equipos + fecha.
+2. Si se encuentra, escribir las 3 cuotas automáticamente al Sheet.
+3. Trigger: cron diario en Apps Script o on-demand desde un botón en Gestión.
+
+Esto elimina la carga manual y mantiene las cuotas actualizadas según el mercado
+real. Quedará anotado como mejora para una próxima iteración.
