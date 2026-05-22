@@ -58,12 +58,14 @@ var SHEETS = {
 var PLAYERS = ['Dari', 'Kmi', 'Blopa', 'Pela'];
 var PLAYER_COLORS = { Dari: '#1E4FB8', Kmi: '#E8442C', Blopa: '#E8B33D', Pela: '#2E6B3A' };
 
-// ── API-Football (sandbox) ──────────────────────────────────────────
+// ── TheSportsDB (sandbox) ───────────────────────────────────────────
 // Carga automática de resultados a una hoja aparte (_API_test). NO toca
 // las hojas de producción. Ver qa17.
-var APIFOOTBALL_BASE = 'https://v3.football.api-sports.io';
-var APIFOOTBALL_LEAGUES = {
-  liga: { id: 265, season: 2026 }   // Liga de Primera Chile
+// TheSportsDB es free, sin API key (la "3" del URL es el key público de prueba).
+// API-Football (paid) tampoco cubre Liga Chile 2026 en su tier free.
+var SPORTSDB_BASE = 'https://www.thesportsdb.com/api/v1/json/3';
+var SPORTSDB_LEAGUES = {
+  liga: { id: 4627, season: 2026 }   // Chile Primera División
 };
 var SANDBOX_SHEET_NAME = '_API_test';
 var SANDBOX_HEADERS = [
@@ -71,30 +73,37 @@ var SANDBOX_HEADERS = [
   'status','matched_in_sheet','sheet_home_team','sheet_away_team',
   'sheet_row','sheet_has_score','would_update','imported_at'
 ];
-// Mapeo de nombres API → nombres en el Sheet. Iterar agregando los que aparezcan
-// como "unmatched" en la respuesta de fetchResults.
+// Mapeo de nombres API (TheSportsDB) → nombres en el Sheet. Iterar agregando
+// los que aparezcan como "unmatched".
 var TEAM_ALIASES = {
-  "Universidad de Chile": "U. de Chile",
-  "Universidad Catolica": "U. Católica",
-  "Universidad Católica": "U. Católica",
-  "Deportes La Serena":   "La Serena",
-  "Deportes Iquique":     "Iquique",
-  "Deportes Limache":     "Limache",
-  "Deportes Copiapo":     "Copiapó",
-  "Union La Calera":      "La Calera",
-  "Union Espanola":       "U. Española",
-  "Unión Española":       "U. Española",
-  "Coquimbo Unido":       "Coquimbo Unido",
-  "Audax Italiano":       "Audax Italiano",
-  "Cobresal":             "Cobresal",
-  "Huachipato":           "Huachipato",
-  "Palestino":            "Palestino",
-  "Colo Colo":            "Colo Colo",
-  "Colo-Colo":            "Colo Colo",
-  "Everton":              "Everton",
-  "O'Higgins":            "O'Higgins",
-  "Nublense":             "Ñublense",
-  "Ñublense":             "Ñublense"
+  "Universidad de Chile":          "U. de Chile",
+  "Universidad Católica":          "U. Católica",
+  "Universidad Catolica":          "U. Católica",
+  "Universidad de Concepción":     "U. de Concepción",
+  "Universidad de Concepcion":     "U. de Concepción",
+  "Deportes La Serena":            "La Serena",
+  "Deportes Iquique":              "Iquique",
+  "Deportes Limache":              "Limache",
+  "Deportes Copiapo":              "Copiapó",
+  "Deportes Concepción":           "Dep. Concepción",
+  "Deportes Concepcion":           "Dep. Concepción",
+  "Union La Calera":               "La Calera",
+  "Unión La Calera":               "La Calera",
+  "Union Espanola":                "U. Española",
+  "Unión Española":                "U. Española",
+  "Coquimbo Unido":                "Coquimbo Unido",
+  "Audax Italiano":                "Audax Italiano",
+  "Cobresal":                      "Cobresal",
+  "Huachipato":                    "Huachipato",
+  "Palestino":                     "Palestino",
+  "Colo Colo":                     "Colo Colo",
+  "Colo-Colo":                     "Colo Colo",
+  "Everton":                       "Everton",
+  "Everton de Viña del Mar":       "Everton",
+  "Everton de Vina del Mar":       "Everton",
+  "O'Higgins":                     "O'Higgins",
+  "Nublense":                      "Ñublense",
+  "Ñublense":                      "Ñublense"
 };
 
 // ── Web App entry points ───────────────────────────────────────────
@@ -675,33 +684,33 @@ function isPlayed_(m) {
 function str_(v) { return v == null ? '' : String(v).trim(); }
 function log_(/* ...args */) { try { console.log.apply(console, arguments); } catch (_) {} }
 
-// ── API-Football fetch (sandbox) ───────────────────────────────────
+// ── TheSportsDB fetch (sandbox) ────────────────────────────────────
 // Consulta resultados de la API y los escribe a la hoja _API_test
 // (NO toca Liga de Primera). Ver plan qa17.
 function fetchResults_(p) {
-  var key = PropertiesService.getScriptProperties().getProperty('APIFOOTBALL_KEY');
-  if (!key) return { ok: false, error: 'missing_api_key', hint: 'Configurá APIFOOTBALL_KEY en Properties del script' };
-
-  // Defaults: últimos 7 días → hoy
+  // Defaults: últimos 7 días → hoy. Si el rango es vacío, trae todo lo que la API tenga
+  // para la season y filtra después (TheSportsDB no soporta filtro por fechas server-side).
   var today = new Date();
   var fromDate = p.from || ymd_(addDays_(today, -7));
   var toDate   = p.to   || ymd_(today);
 
-  var league = APIFOOTBALL_LEAGUES.liga;
+  var league = SPORTSDB_LEAGUES.liga;
   var resp;
   try {
-    resp = apiFootballGet_('/fixtures', {
-      league: league.id, season: league.season,
-      from: fromDate, to: toDate
+    resp = sportsDBGet_('/eventsseason.php', {
+      id: league.id, s: league.season
     });
   } catch (err) {
     return { ok: false, error: 'api_call_failed', detail: String(err && err.message) };
   }
-  if (!resp || !resp.response) {
-    return { ok: false, error: 'api_bad_response', detail: JSON.stringify(resp).slice(0, 300) };
-  }
+  var events = (resp && resp.events) || [];
 
-  var fixtures = resp.response || [];
+  // Filtrar por rango de fechas en el cliente
+  events = events.filter(function (e) {
+    var d = (e.dateEvent || '').slice(0, 10);
+    return d && d >= fromDate && d <= toDate;
+  });
+
   var ss = SpreadsheetApp.getActive();
   var sandbox = ensureSandboxSheet_(ss);
 
@@ -712,20 +721,19 @@ function fetchResults_(p) {
   // Index para matching contra Liga
   var matchIndex = buildMatchIndex_(ss);
   var ligaSheet  = ss.getSheetByName(SHEETS.liga.name);
-  var IDX        = colIndexes_('liga');
 
   var rows = [];
   var matched = 0, wouldUpdate = 0, alreadyFilled = 0;
   var unmatchedSet = {};
   var now = new Date().toISOString();
 
-  fixtures.forEach(function (fx) {
-    var fxDate = fx.fixture && fx.fixture.date ? fx.fixture.date.slice(0, 10) : '';
-    var homeApi = (fx.teams && fx.teams.home && fx.teams.home.name) || '';
-    var awayApi = (fx.teams && fx.teams.away && fx.teams.away.name) || '';
-    var hs = fx.goals && fx.goals.home != null ? fx.goals.home : '';
-    var as_ = fx.goals && fx.goals.away != null ? fx.goals.away : '';
-    var status = (fx.fixture && fx.fixture.status && fx.fixture.status.short) || '';
+  events.forEach(function (e) {
+    var fxDate = (e.dateEvent || '').slice(0, 10);
+    var homeApi = e.strHomeTeam || '';
+    var awayApi = e.strAwayTeam || '';
+    var hs = (e.intHomeScore != null && e.intHomeScore !== '') ? parseInt(e.intHomeScore, 10) : '';
+    var as_ = (e.intAwayScore != null && e.intAwayScore !== '') ? parseInt(e.intAwayScore, 10) : '';
+    var status = e.strStatus || (hs !== '' && as_ !== '' ? 'Match Finished' : '');
 
     var homeSheet = resolveTeamName_(homeApi);
     var awaySheet = resolveTeamName_(awayApi);
@@ -740,20 +748,18 @@ function fetchResults_(p) {
     if (loc) {
       matched++;
       sheetRow = loc.row;
-      // Leer la fila real para ver si ya tiene score
       var realRow = ligaSheet.getRange(loc.row, 1, 1, ligaSheet.getLastColumn()).getValues()[0];
       var parsed = SHEETS.liga.parser(realRow, 'liga', loc.row - 1);
       var hasScore = parsed && parsed.home_score != null && parsed.away_score != null;
       sheetHas = hasScore ? 'Y' : 'N';
-      // Solo "would_update" si la API tiene score y el sheet no lo tiene
-      if (status === 'FT' && hs !== '' && as_ !== '' && !hasScore) {
+      var finished = /Match Finished|FT/i.test(status);
+      if (finished && hs !== '' && as_ !== '' && !hasScore) {
         wouldUpd = 'Y'; wouldUpdate++;
       } else {
         wouldUpd = 'N';
         if (hasScore) alreadyFilled++;
       }
     } else {
-      // Trackear unmatched para que el admin agregue alias
       if (!unmatchedSet[homeApi]) unmatchedSet[homeApi] = true;
       if (!unmatchedSet[awayApi]) unmatchedSet[awayApi] = true;
     }
@@ -773,7 +779,8 @@ function fetchResults_(p) {
   var unmatched = Object.keys(unmatchedSet);
   return {
     ok: true,
-    fetched: fixtures.length,
+    source: 'TheSportsDB',
+    fetched: events.length,
     matched: matched,
     would_update: wouldUpdate,
     already_filled: alreadyFilled,
@@ -794,18 +801,15 @@ function clearSandbox_() {
   return { ok: true, cleared: Math.max(0, lastRow - 1) };
 }
 
-// ── Helpers API-Football ────────────────────────────────────────────
-function apiFootballGet_(path, params) {
-  var key = PropertiesService.getScriptProperties().getProperty('APIFOOTBALL_KEY');
-  if (!key) throw new Error('missing_api_key');
-  var url = APIFOOTBALL_BASE + path;
+// ── Helpers TheSportsDB ─────────────────────────────────────────────
+function sportsDBGet_(path, params) {
+  var url = SPORTSDB_BASE + path;
   var qs = Object.keys(params || {}).map(function (k) {
     return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
   }).join('&');
   if (qs) url += '?' + qs;
   var res = UrlFetchApp.fetch(url, {
     method: 'get',
-    headers: { 'x-apisports-key': key },
     muteHttpExceptions: true
   });
   var code = res.getResponseCode();
@@ -841,12 +845,5 @@ function addDays_(d, n) {
 // ── Test desde el editor de Apps Script (clic "Run" en alguna) ─────
 function test_health()   { log_(JSON.stringify(health_(),   null, 2)); }
 function test_state()    { log_(JSON.stringify(getState_(), null, 2).slice(0, 4000)); }
-function test_status()   {
-  // TEMPORAL qa17: llama UrlFetchApp directo (sin try/catch) para forzar OAuth prompt
-  var r = UrlFetchApp.fetch('https://v3.football.api-sports.io/status', {
-    headers: { 'x-apisports-key': PropertiesService.getScriptProperties().getProperty('APIFOOTBALL_KEY') },
-    muteHttpExceptions: true
-  });
-  log_(r.getContentText().slice(0, 500));
-}
+function test_status()   { log_(JSON.stringify(syncStatus_(),null, 2)); }
 function test_fetch_results() { log_(JSON.stringify(fetchResults_({}), null, 2)); }
