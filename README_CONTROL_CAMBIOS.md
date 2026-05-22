@@ -1704,15 +1704,59 @@ Guardar el script. Limpiar sandbox y volver a importar — esta vez matchea.
 
 ### Archivos modificados
 
-- `apps-script/Code.gs` — nuevas constantes (`APIFOOTBALL_BASE`,
-  `APIFOOTBALL_LEAGUES`, `SANDBOX_SHEET_NAME`, `SANDBOX_HEADERS`, `TEAM_ALIASES`),
-  funciones `fetchResults_`, `clearSandbox_`, helpers `apiFootballGet_`,
-  `resolveTeamName_`, `ensureSandboxSheet_`, `ymd_`, `addDays_`, y la función test
-  `test_fetch_results`. Reutiliza `buildMatchIndex_`, `colIndexes_`, `SHEETS.liga.parser`.
+- `apps-script/Code.gs` — nuevas constantes (`SPORTSDB_BASE`, `SPORTSDB_LEAGUES`,
+  `SANDBOX_SHEET_NAME`, `SANDBOX_HEADERS`, `TEAM_ALIASES`), funciones `fetchResults_`,
+  `clearSandbox_`, helpers `sportsDBGet_`, `resolveTeamName_`, `ensureSandboxSheet_`,
+  `ymd_`, `addDays_`, y la función test `test_fetch_results`. Reutiliza
+  `buildMatchIndex_`, `colIndexes_`, `SHEETS.liga.parser`.
 - `web/index.html` — nueva acard "Importar resultados (sandbox)" en Gestión.
 - `web/js/api.js` — exports `fetchResults`, `clearSandbox`.
 - `web/js/render-admin.js` — handlers `importResultsHandler`, `clearSandboxHandler`,
   helper `ymdISO_`, wiring.
+
+### Cronología del trabajo (lo que pasó realmente)
+
+Esta feature requirió 3 deploys y un pivot porque el primer plan no funcionó como
+esperábamos:
+
+1. **V4 deploy (api-football)** — primer corte usando API-Football. Setup completo:
+   key en Script Properties, OAuth scope `script.external_request` aprobado.
+2. **Bloqueo del free tier** — al hacer el primer fetch real descubrimos que el
+   plan free de api-sports.io no permite consultar seasons 2025 ni 2026 (solo
+   2022-2024). El error en la respuesta:
+   `"plan": "Free plans do not have access to this season, try from 2022 to 2024."`
+3. **Pivot a TheSportsDB (V5 deploy)** — reescribimos `fetchResults_`, helpers y
+   aliases para consumir TheSportsDB que sí cubre Liga Chile 2026 gratis y sin key.
+4. **Bug fix de alias (V6 deploy)** — el primer test devolvió 10/11 matched: el
+   partido Coquimbo vs Palestino quedaba unmatched. La API dice "Coquimbo Unido"
+   pero el Sheet tiene "Coquimbo" a secas. Arreglamos el alias y volvió a 11/11.
+
+### Verificación end-to-end (real, no teórica)
+
+Test final contra el endpoint en producción con rango `2026-02-01 → 2026-05-21`:
+
+```json
+{
+  "ok": true,
+  "source": "TheSportsDB",
+  "fetched": 11,
+  "matched": 11,
+  "would_update": 0,
+  "already_filled": 11,
+  "unmatched": [],
+  "sandbox_sheet": "_API_test"
+}
+```
+
+Los 11 partidos que la API tiene para la Liga 2026 matchearon todos contra el Sheet,
+sus marcadores coinciden con los que ya estaban cargados (`already_filled: 11`),
+y la hoja `_API_test` quedó con las 11 filas + 13 columnas de info para validar.
+
+### Nota sobre Script Properties
+
+Durante el camino V4 guardamos `APIFOOTBALL_KEY` en las Propiedades del Script.
+Después del pivot a TheSportsDB ya no se usa, pero queda guardada por si en el
+futuro pivotamos de vuelta a API-Football (paid tier). No estorba.
 
 ### Lo que esta feature NO hace (intencional)
 
