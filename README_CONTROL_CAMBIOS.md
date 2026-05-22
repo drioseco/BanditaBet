@@ -1665,19 +1665,19 @@ Así el admin ve TODA la info para decidir.
 
 ### Fuente
 
-API-Football vía `api-sports.io`. Free tier 100 requests/día (mucho de sobra: 1
-call trae todos los partidos de un rango). Cobertura de Liga Chile = league id `265`.
+**TheSportsDB** vía `thesportsdb.com/api/v1/json/3`. Free, sin API key (la "3" es el
+key público de prueba). Cobertura: Liga Chile Primera División = league id `4627`.
 
-### Setup (paso por paso, una vez)
+**Por qué TheSportsDB y no API-Football:** intenté API-Football primero (mejor tier
+nominal), pero su free plan solo cubre seasons 2022-2024. Liga Chile 2026 está
+bloqueada. TheSportsDB cubre 2026 gratis. Si en el futuro necesitamos más cobertura
+o más detalle (cuotas, lineups), podemos pivotar a API-Football paid tier.
 
-1. Crear cuenta gratis en `https://dashboard.api-football.com/register`.
-2. Copiar la API key del dashboard.
-3. Abrir el editor de Apps Script del proyecto.
-4. ⚙️ Configuración del proyecto → "Propiedades del secuencia de comandos" → agregar:
-   - Propiedad: `APIFOOTBALL_KEY`
-   - Valor: la key copiada
-5. (Opcional) Crear pestaña `_API_test` en el Sheet. Si no existe, el script la crea
-   automáticamente en la primera ejecución con sus 13 headers.
+### Setup
+
+**Cero setup** — la API es completamente pública. No hay que crear cuenta ni guardar
+keys. El script ya está configurado en producción. La pestaña `_API_test` se crea
+automáticamente en la primera ejecución.
 
 ### Cómo usar
 
