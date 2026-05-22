@@ -91,7 +91,7 @@ var TEAM_ALIASES = {
   "Unión La Calera":               "La Calera",
   "Union Espanola":                "U. Española",
   "Unión Española":                "U. Española",
-  "Coquimbo Unido":                "Coquimbo Unido",
+  "Coquimbo Unido":                "Coquimbo",
   "Audax Italiano":                "Audax Italiano",
   "Cobresal":                      "Cobresal",
   "Huachipato":                    "Huachipato",
