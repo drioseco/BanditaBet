@@ -2044,3 +2044,117 @@ Interpretación:
   timezone shift. Esto se resolverá en qa21 (matching con tolerancia ±1 día).
 - La diferencia entre los 92 partidos totales de la season y los 21+22+... del
   rango es porque el rango (15 may → 15 jun) cubre solo ~1 mes de Liga.
+
+---
+
+## qa21 — Propuestas de cuotas (Fac L/E/V) desde API externa
+
+**Fecha:** 22 mayo 2026
+**Rama:** main
+
+### Qué era el problema
+
+El usuario evaluó la importación automática de resultados (qa17-qa20) y dijo
+"no tuvo muy buena venta" — la cobertura de partidos jugados era OK pero
+escribir resultados es la parte fácil del flujo manual. **Lo que de verdad
+agrega valor es traer las cuotas pre-partido** (Fac L/E/V) que hoy se cargan
+una por una en Gestión.
+
+### Qué se construyó
+
+Nuevo flujo de "propuestas de cuotas" en Gestión:
+
+1. **Backend**: endpoint `fetchOdds` que consulta ESPN Core API (que tiene
+   cuotas de DraftKings en formato decimal) para los próximos partidos.
+2. **Frontend**: card "🎯 Importar cuotas (propuesta · Fac L/E/V)" en Gestión
+   que muestra una lista de partidos con cuotas API + cuotas actuales del
+   Sheet + botón "Aplicar al fixture" por partido.
+3. **Aplicación**: click "Aplicar" → confirm con resumen → llama
+   `updateFactors` (endpoint existente de qa12) → cuotas escritas al Sheet.
+
+Es propuesta + revisión + aplicación manual por match. Nada se aplica solo.
+
+### Por qué ESPN core API y no la scoreboard
+
+La scoreboard API (`site.api.espn.com`) solo trae `drawOdds.moneyLine` para
+Liga Chile — falta L y V. La **core API** (`sports.core.api.espn.com`)
+sí trae `homeTeamOdds`, `drawOdds`, `awayTeamOdds` con sub-objetos
+`current.moneyLine.decimal` (formato decimal directo).
+
+Trade-off: necesita una llamada extra por partido (vs los datos venir
+embebidos), pero el rate limit de ESPN es generoso y el cache del Apps Script
+amortigua.
+
+### Conversión de formato
+
+ESPN provee:
+- En core API: `.current.moneyLine.decimal` (ya decimal, listo)
+- Fallback: `.moneyLine` raw (American odds, ej. `+155`, `-110`)
+
+Helper `americanToDecimal_(ml)`:
+- Acepta número (raw American) o objeto (`{decimal, american, value}`).
+- Convierte American → Decimal: `am > 0 ? am/100+1 : 100/|am|+1`.
+
+### Estructura de la respuesta
+
+```json
+{
+  "ok": true,
+  "source": "ESPN Core API · DraftKings",
+  "proposals": [
+    {
+      "match_id": "7c77d093-4ae2-59f6-80d3-dca398119e22",
+      "match_date": "2026-05-22",
+      "home_team": "Everton",
+      "away_team": "Coquimbo",
+      "provider": "DraftKings",
+      "proposal": { "fl": 2.9, "fe": 3.15, "fv": 2.55 },
+      "current":  { "fl": 2.9, "fe": 3.20, "fv": 2.40 }
+    }
+  ],
+  "skipped_no_odds": 6,
+  "skipped_unmatched": 3
+}
+```
+
+### Verificación
+
+Test contra rango `2026-05-22 → 2026-06-05` (V9 live):
+- 6 propuestas con cuotas completas
+- 6 partidos skip por no tener odds publicadas todavía
+- 3 partidos skip por no matchear contra Sheet (timezone — fix qa22)
+
+### Archivos modificados
+
+- `apps-script/Code.gs`:
+  - Nuevo case `'fetchOdds'` en `handle()`
+  - Función `fetchOdds_(p)` que itera events de ESPN scoreboard + core API
+  - Helpers `americanToDecimal_(ml)` y `espnGetCore_(path)`
+- `web/index.html` — card nueva "🎯 Importar cuotas (propuesta)" en Gestión
+- `web/js/api.js` — export `fetchOdds`
+- `web/js/render-admin.js` — `fetchOddsHandler`, `renderProposal_`,
+  `applyProposalHandler` + wiring del botón
+- `web/css/app.css` — bloque "Propuestas de cuotas (qa21)" con estilos
+  `.prop-row`, `.prop-odds`, `.prop-cell`, `.prop-apply`
+- Apps Script **Versión 9** deployada
+
+### Cómo usar
+
+1. Gestión → tarjeta "🎯 Importar cuotas (propuesta · Fac L/E/V)"
+2. Elegir rango (default: hoy → 14 días adelante)
+3. Click "🎯 Traer propuestas" → aparece lista de partidos próximos
+4. Para cada partido ves:
+   - Equipos + fecha
+   - 3 cajas con las cuotas API (L / Empate / V)
+   - Cuotas actuales del Sheet en chico (para comparar)
+   - Botón "★ Aplicar al fixture"
+5. Click "Aplicar" → confirm con los valores → cuotas escritas al Sheet
+
+### Próximos pasos
+
+- **qa22:** matching con tolerancia ±1 día para resolver los 3 skipped por
+  timezone shifts (Coquimbo Unido aparece como skip en 2026-05-22 porque la
+  fecha API y la del Sheet difieren).
+- **qa23:** botón "Aplicar todos los que cambiaron >5%" para aprobar batch.
+- **qa24:** cron `everyHours(6)` para sincronizar cuotas automáticamente
+  durante los días previos a la jornada.
