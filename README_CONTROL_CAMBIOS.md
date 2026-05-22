@@ -2158,3 +2158,47 @@ Test contra rango `2026-05-22 → 2026-06-05` (V9 live):
 - **qa23:** botón "Aplicar todos los que cambiaron >5%" para aprobar batch.
 - **qa24:** cron `everyHours(6)` para sincronizar cuotas automáticamente
   durante los días previos a la jornada.
+
+---
+
+## qa22 — Limpieza de placeholders 0-0 heredados del seed
+
+**Fecha:** 22 mayo 2026
+
+### Qué era el problema
+
+143 partidos con fecha futura tenían `0-0` literalmente escrito en las celdas
+de marcador local/visita del Sheet. No eran resultados reales — eran
+placeholders heredados del seed inicial (cuando se importó la planilla
+original al Sheet, probablemente desde un CSV/Excel donde las columnas de
+marcador venían pre-rellenadas con 0).
+
+Eso causó:
+1. El bug WO de qa18 (las celdas 0+0 se procesaban como empate real).
+2. Confusión semántica: ver el Sheet sin la app sugería resultados que no eran.
+
+### Qué se construyó
+
+Función one-shot `test_clean_future_placeholders` que recorre Liga + Experto y,
+para cada fila con `match_date > today`, **borra el contenido** de las
+columnas de marcador. Nada más se toca (picks, cuotas, resultados, status
+quedan intactos).
+
+### Resultado
+
+```
+clean_future_placeholders: 143 filas limpiadas
+```
+
+Verificación post-cleanup:
+- Partidos futuros con 0-0 placeholder: **0** ✅
+- Partidos futuros con score vacío (null): 222 (correcto, ahora reflejan que
+  no se han jugado)
+- Partidos pasados con 0-0 (resultados reales 0-0): 15 (intactos, son
+  empates reales con result_factor cargado)
+
+### Archivos modificados
+
+- `apps-script/Code.gs` — agregada `test_clean_future_placeholders`
+- Apps Script Versión 9 sigue activa — la limpieza corrió desde el editor
+  (no necesita deploy, no es un endpoint público)
