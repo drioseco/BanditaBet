@@ -58,14 +58,15 @@ var SHEETS = {
 var PLAYERS = ['Dari', 'Kmi', 'Blopa', 'Pela'];
 var PLAYER_COLORS = { Dari: '#1E4FB8', Kmi: '#E8442C', Blopa: '#E8B33D', Pela: '#2E6B3A' };
 
-// ── TheSportsDB (sandbox) ───────────────────────────────────────────
+// ── ESPN API (sandbox) ──────────────────────────────────────────────
 // Carga automática de resultados a una hoja aparte (_API_test). NO toca
-// las hojas de producción. Ver qa17.
-// TheSportsDB es free, sin API key (la "3" del URL es el key público de prueba).
-// API-Football (paid) tampoco cubre Liga Chile 2026 en su tier free.
-var SPORTSDB_BASE = 'https://www.thesportsdb.com/api/v1/json/3';
-var SPORTSDB_LEAGUES = {
-  liga: { id: 4627, season: 2026 }   // Chile Primera División
+// las hojas de producción. Ver qa17/qa19.
+// ESPN tiene un endpoint público sin auth (`site.api.espn.com`) que cubre
+// Liga Chile 2026 con ~92 partidos. TheSportsDB solo tenía 11, API-Football
+// free no cubre 2026.
+var ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
+var ESPN_LEAGUES = {
+  liga: { slug: 'chi.1' }   // Chile Primera División
 };
 var SANDBOX_SHEET_NAME = '_API_test';
 var SANDBOX_HEADERS = [
@@ -73,8 +74,8 @@ var SANDBOX_HEADERS = [
   'status','matched_in_sheet','sheet_home_team','sheet_away_team',
   'sheet_row','sheet_has_score','would_update','imported_at'
 ];
-// Mapeo de nombres API (TheSportsDB) → nombres en el Sheet. Iterar agregando
-// los que aparezcan como "unmatched".
+// Mapeo de nombres API (ESPN + fallback otros) → nombres en el Sheet.
+// Iterar agregando los que aparezcan como "unmatched".
 var TEAM_ALIASES = {
   "Universidad de Chile":          "U. de Chile",
   "Universidad Católica":          "U. Católica",
@@ -99,6 +100,7 @@ var TEAM_ALIASES = {
   "Colo Colo":                     "Colo Colo",
   "Colo-Colo":                     "Colo Colo",
   "Everton":                       "Everton",
+  "Everton CD":                    "Everton",
   "Everton de Viña del Mar":       "Everton",
   "Everton de Vina del Mar":       "Everton",
   "O'Higgins":                     "O'Higgins",
@@ -731,32 +733,21 @@ function isPlayed_(m) {
 function str_(v) { return v == null ? '' : String(v).trim(); }
 function log_(/* ...args */) { try { console.log.apply(console, arguments); } catch (_) {} }
 
-// ── TheSportsDB fetch (sandbox) ────────────────────────────────────
-// Consulta resultados de la API y los escribe a la hoja _API_test
-// (NO toca Liga de Primera). Ver plan qa17.
+// ── ESPN fetch (sandbox) ────────────────────────────────────────────
+// Consulta resultados de la API ESPN y los escribe a la hoja _API_test.
+// NO toca Liga de Primera. Ver plan qa17/qa19.
 function fetchResults_(p) {
-  // Defaults: últimos 7 días → hoy. Si el rango es vacío, trae todo lo que la API tenga
-  // para la season y filtra después (TheSportsDB no soporta filtro por fechas server-side).
   var today = new Date();
   var fromDate = p.from || ymd_(addDays_(today, -7));
   var toDate   = p.to   || ymd_(today);
 
-  var league = SPORTSDB_LEAGUES.liga;
-  var resp;
+  var league = ESPN_LEAGUES.liga;
+  var events;
   try {
-    resp = sportsDBGet_('/eventsseason.php', {
-      id: league.id, s: league.season
-    });
+    events = espnFetchRange_(league.slug, fromDate, toDate);
   } catch (err) {
     return { ok: false, error: 'api_call_failed', detail: String(err && err.message) };
   }
-  var events = (resp && resp.events) || [];
-
-  // Filtrar por rango de fechas en el cliente
-  events = events.filter(function (e) {
-    var d = (e.dateEvent || '').slice(0, 10);
-    return d && d >= fromDate && d <= toDate;
-  });
 
   var ss = SpreadsheetApp.getActive();
   var sandbox = ensureSandboxSheet_(ss);
@@ -775,12 +766,20 @@ function fetchResults_(p) {
   var now = new Date().toISOString();
 
   events.forEach(function (e) {
-    var fxDate = (e.dateEvent || '').slice(0, 10);
-    var homeApi = e.strHomeTeam || '';
-    var awayApi = e.strAwayTeam || '';
-    var hs = (e.intHomeScore != null && e.intHomeScore !== '') ? parseInt(e.intHomeScore, 10) : '';
-    var as_ = (e.intAwayScore != null && e.intAwayScore !== '') ? parseInt(e.intAwayScore, 10) : '';
-    var status = e.strStatus || (hs !== '' && as_ !== '' ? 'Match Finished' : '');
+    var fxDate = (e.date || '').slice(0, 10);
+    var comp = (e.competitions && e.competitions[0]) || {};
+    var competitors = comp.competitors || [];
+    var homeC = competitors.find ? competitors.find(function (c) { return c.homeAway === 'home'; })
+                                 : (competitors[0] && competitors[0].homeAway === 'home' ? competitors[0] : competitors[1]);
+    var awayC = competitors.find ? competitors.find(function (c) { return c.homeAway === 'away'; })
+                                 : (competitors[0] && competitors[0].homeAway === 'away' ? competitors[0] : competitors[1]);
+    var homeApi = (homeC && homeC.team && homeC.team.displayName) || '';
+    var awayApi = (awayC && awayC.team && awayC.team.displayName) || '';
+    var hsRaw = homeC && homeC.score;
+    var asRaw = awayC && awayC.score;
+    var hs = (hsRaw !== '' && hsRaw != null && !isNaN(parseInt(hsRaw, 10))) ? parseInt(hsRaw, 10) : '';
+    var as_ = (asRaw !== '' && asRaw != null && !isNaN(parseInt(asRaw, 10))) ? parseInt(asRaw, 10) : '';
+    var status = (e.status && e.status.type && (e.status.type.description || e.status.type.name)) || '';
 
     var homeSheet = resolveTeamName_(homeApi);
     var awaySheet = resolveTeamName_(awayApi);
@@ -799,7 +798,7 @@ function fetchResults_(p) {
       var parsed = SHEETS.liga.parser(realRow, 'liga', loc.row - 1);
       var hasScore = parsed && parsed.home_score != null && parsed.away_score != null;
       sheetHas = hasScore ? 'Y' : 'N';
-      var finished = /Match Finished|FT/i.test(status);
+      var finished = /Full Time|Match Finished|STATUS_FULL_TIME|FT/i.test(status);
       if (finished && hs !== '' && as_ !== '' && !hasScore) {
         wouldUpd = 'Y'; wouldUpdate++;
       } else {
@@ -826,7 +825,7 @@ function fetchResults_(p) {
   var unmatched = Object.keys(unmatchedSet);
   return {
     ok: true,
-    source: 'TheSportsDB',
+    source: 'ESPN',
     fetched: events.length,
     matched: matched,
     would_update: wouldUpdate,
@@ -848,22 +847,55 @@ function clearSandbox_() {
   return { ok: true, cleared: Math.max(0, lastRow - 1) };
 }
 
-// ── Helpers TheSportsDB ─────────────────────────────────────────────
-function sportsDBGet_(path, params) {
-  var url = SPORTSDB_BASE + path;
+// ── Helpers ESPN ────────────────────────────────────────────────────
+// ESPN's scoreboard endpoint accepts ?dates=YYYYMMDD-YYYYMMDD but solo retorna
+// hasta ~30 días por request. Para rangos más largos, paginamos por mes.
+function espnFetchRange_(leagueSlug, fromYMD, toYMD) {
+  var all = [];
+  var seen = {}; // dedup por event id
+  // Iteramos mes a mes (ESPN devuelve un mes calendar por request normalmente)
+  var cursor = new Date(fromYMD + 'T12:00:00Z');
+  var endD   = new Date(toYMD   + 'T12:00:00Z');
+  var safety = 0;
+  while (cursor.getTime() <= endD.getTime() && safety++ < 24) {
+    // Calcular start/end del mes actual (o hasta endD)
+    var y = cursor.getUTCFullYear();
+    var m = cursor.getUTCMonth();
+    var monthStart = new Date(Date.UTC(y, m, 1, 12));
+    var monthEnd   = new Date(Date.UTC(y, m + 1, 0, 12)); // último día del mes
+    var fromD = monthStart > cursor ? monthStart : cursor;
+    var toD   = monthEnd < endD ? monthEnd : endD;
+    var fromStr = ymdCompact_(fromD);
+    var toStr   = ymdCompact_(toD);
+    var resp = espnGet_('/' + leagueSlug + '/scoreboard', { dates: fromStr + '-' + toStr });
+    var events = (resp && resp.events) || [];
+    events.forEach(function (e) {
+      if (e.id && seen[e.id]) return;
+      if (e.id) seen[e.id] = true;
+      all.push(e);
+    });
+    // Avanzar al primer día del mes siguiente
+    cursor = new Date(Date.UTC(y, m + 1, 1, 12));
+  }
+  return all;
+}
+
+function espnGet_(path, params) {
+  var url = ESPN_BASE + path;
   var qs = Object.keys(params || {}).map(function (k) {
     return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
   }).join('&');
   if (qs) url += '?' + qs;
-  var res = UrlFetchApp.fetch(url, {
-    method: 'get',
-    muteHttpExceptions: true
-  });
+  var res = UrlFetchApp.fetch(url, { method: 'get', muteHttpExceptions: true });
   var code = res.getResponseCode();
   if (code < 200 || code >= 300) {
     throw new Error('http_' + code + ': ' + res.getContentText().slice(0, 200));
   }
   return JSON.parse(res.getContentText());
+}
+
+function ymdCompact_(d) {
+  return d.getUTCFullYear() + pad_(d.getUTCMonth() + 1) + pad_(d.getUTCDate());
 }
 
 function resolveTeamName_(apiName) {
