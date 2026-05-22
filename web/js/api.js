@@ -118,3 +118,8 @@ export async function fetchResults({ from, to } = {}) {
 export async function clearSandbox() {
   return post('clearSandbox', {});
 }
+
+// qa21 — Propuestas de cuotas desde API externa
+export async function fetchOdds({ from, to } = {}) {
+  return post('fetchOdds', { from: from || '', to: to || '' });
+}

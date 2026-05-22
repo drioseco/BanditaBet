@@ -764,3 +764,43 @@ select.fi { appearance: none; cursor: pointer; }
 .pc-match { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .hero-pick-teams { display: inline-flex; align-items: center; gap: 8px; justify-content: center; flex-wrap: wrap; }
 
+
+/* qa21 — Propuestas de cuotas */
+.prop-list { margin-top: .75rem; display: flex; flex-direction: column; gap: .5rem; }
+.prop-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1.4fr auto auto;
+  gap: .75rem; align-items: center;
+  padding: .6rem .8rem;
+  background: var(--bb-cream); border: var(--bb-border-sm);
+  border-color: rgba(31,26,46,.18); border-radius: 4px;
+}
+.prop-info { min-width: 0; }
+.prop-date {
+  font-family: var(--bb-mono); font-size: .56rem; font-weight: 700;
+  letter-spacing: .4px; text-transform: uppercase;
+  color: rgba(31,26,46,.5); margin-bottom: 2px;
+}
+.prop-teams { font-family: var(--bb-ui); font-size: .82rem; font-weight: 700; color: var(--bb-ink); line-height: 1.2; }
+.prop-teams em { font-style: normal; color: rgba(31,26,46,.4); font-size: .68rem; margin: 0 4px; }
+.prop-odds { display: grid; grid-template-columns: repeat(3, 56px); gap: .35rem; }
+.prop-cell {
+  text-align: center; padding: 5px 4px;
+  background: rgba(140,29,47,.06); border: 1px solid rgba(140,29,47,.18); border-radius: 3px;
+}
+.prop-cell b { display: block; font-family: var(--bb-mono); font-size: 1rem; color: var(--bb-maroon); line-height: 1; }
+.prop-cell small {
+  display: block; font-family: var(--bb-mono); font-size: .48rem; font-weight: 700;
+  letter-spacing: .3px; text-transform: uppercase; color: rgba(31,26,46,.42); margin-top: 2px;
+}
+.prop-current {
+  font-family: var(--bb-mono); font-size: .58rem;
+  color: rgba(31,26,46,.55); padding: 4px 6px;
+  border-left: 2px solid rgba(31,26,46,.15); white-space: nowrap;
+}
+.prop-current.prop-empty { color: var(--bb-tomate); }
+.prop-apply { width: auto; padding: 7px 14px; font-size: .68rem; margin-top: 0; }
+@media (max-width: 720px) {
+  .prop-row { grid-template-columns: 1fr; gap: .5rem; }
+  .prop-odds { grid-template-columns: repeat(3, 1fr); }
+}

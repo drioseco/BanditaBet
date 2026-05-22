@@ -136,6 +136,7 @@ function handle(action, p) {
       case 'addMatch':     return addMatch_(p);
       case 'updateFactors': return updateFactors_(p);
       case 'fetchResults':  return fetchResults_(p);
+      case 'fetchOdds':     return fetchOdds_(p);
       case 'clearSandbox':  return clearSandbox_();
       default:             return { ok: false, error: 'unknown_action', got: action };
     }
@@ -850,6 +851,138 @@ function fetchResults_(p) {
     sandbox_sheet: SANDBOX_SHEET_NAME,
     range: { from: fromDate, to: toDate }
   };
+}
+
+// ── fetchOdds_ (qa21): trae propuestas de cuotas L/E/V desde ESPN core API ─
+// Para cada partido futuro en el rango, hace una segunda call al core API
+// (que sí tiene homeTeamOdds / drawOdds / awayTeamOdds en formato decimal).
+// Devuelve lista de proposals con: matchId Sheet + cuotas API + cuotas actuales.
+// El frontend muestra la lista y permite aplicar match por match.
+function fetchOdds_(p) {
+  var today = new Date();
+  var fromDate = p.from || ymd_(today);
+  var toDate   = p.to   || ymd_(addDays_(today, 14));
+
+  var events;
+  try {
+    events = espnFetchRange_(ESPN_LEAGUES.liga.slug, fromDate, toDate);
+  } catch (err) {
+    return { ok: false, error: 'api_call_failed', detail: String(err && err.message) };
+  }
+
+  var ss = SpreadsheetApp.getActive();
+  var matchIndex = buildMatchIndex_(ss);
+  var ligaSheet  = ss.getSheetByName(SHEETS.liga.name);
+
+  var proposals = [];
+  var skipped_no_odds = 0;
+  var skipped_unmatched = 0;
+
+  events.forEach(function (e) {
+    var fxDate = (e.date || '').slice(0, 10);
+    var comp = (e.competitions && e.competitions[0]) || {};
+    var competitors = comp.competitors || [];
+    var homeC = competitors.find ? competitors.find(function (c) { return c.homeAway === 'home'; }) : null;
+    var awayC = competitors.find ? competitors.find(function (c) { return c.homeAway === 'away'; }) : null;
+    var homeApi = (homeC && homeC.team && homeC.team.displayName) || '';
+    var awayApi = (awayC && awayC.team && awayC.team.displayName) || '';
+
+    // Buscar en el Sheet
+    var homeSheet = resolveTeamName_(homeApi);
+    var awaySheet = resolveTeamName_(awayApi);
+    var sheetMatchId = detId_('match', 'liga', homeSheet, awaySheet, fxDate);
+    var loc = matchIndex[sheetMatchId];
+    if (!loc) { skipped_unmatched++; return; }
+
+    // Fetch odds del core API
+    var eventId = e.id;
+    var oddsData;
+    try {
+      oddsData = espnGetCore_('/sports/soccer/leagues/' + ESPN_LEAGUES.liga.slug +
+                              '/events/' + eventId + '/competitions/' + eventId + '/odds');
+    } catch (err) {
+      skipped_no_odds++; return;
+    }
+    var items = (oddsData && oddsData.items) || [];
+    if (!items.length) { skipped_no_odds++; return; }
+    var o = items[0]; // primer proveedor (DraftKings por priority)
+    var homeML = o.homeTeamOdds && o.homeTeamOdds.moneyLine;
+    var awayML = o.awayTeamOdds && o.awayTeamOdds.moneyLine;
+    var drawML = o.drawOdds && o.drawOdds.moneyLine;
+    // Preferir el "current" si está, sino el moneyLine directo
+    if (o.homeTeamOdds && o.homeTeamOdds.current && o.homeTeamOdds.current.moneyLine && o.homeTeamOdds.current.moneyLine.decimal != null) {
+      homeML = o.homeTeamOdds.current.moneyLine; // ya es objeto con .decimal
+    }
+    if (o.awayTeamOdds && o.awayTeamOdds.current && o.awayTeamOdds.current.moneyLine && o.awayTeamOdds.current.moneyLine.decimal != null) {
+      awayML = o.awayTeamOdds.current.moneyLine;
+    }
+    var fl = americanToDecimal_(homeML);
+    var fv = americanToDecimal_(awayML);
+    var fe = americanToDecimal_(drawML);
+    if (fl == null && fe == null && fv == null) { skipped_no_odds++; return; }
+
+    // Cuotas actuales en el Sheet
+    var realRow = ligaSheet.getRange(loc.row, 1, 1, ligaSheet.getLastColumn()).getValues()[0];
+    var parsed = SHEETS.liga.parser(realRow, 'liga', loc.row - 1);
+
+    proposals.push({
+      match_id: sheetMatchId,
+      match_date: fxDate,
+      home_team: homeSheet,
+      away_team: awaySheet,
+      provider: o.provider && o.provider.name,
+      proposal: { fl: fl, fe: fe, fv: fv },
+      current: {
+        fl: parsed && parsed.factor_home != null ? parsed.factor_home : null,
+        fe: parsed && parsed.factor_draw != null ? parsed.factor_draw : null,
+        fv: parsed && parsed.factor_away != null ? parsed.factor_away : null
+      }
+    });
+  });
+
+  // Ordenar por fecha ascendente
+  proposals.sort(function (a, b) { return a.match_date < b.match_date ? -1 : a.match_date > b.match_date ? 1 : 0; });
+
+  return {
+    ok: true,
+    source: 'ESPN Core API · DraftKings',
+    proposals: proposals,
+    skipped_no_odds: skipped_no_odds,
+    skipped_unmatched: skipped_unmatched,
+    range: { from: fromDate, to: toDate }
+  };
+}
+
+// American odds → decimal odds.
+// Acepta: número (moneyLine raw) o objeto {decimal, american}.
+function americanToDecimal_(ml) {
+  if (ml == null) return null;
+  // Si es objeto del "current/open", usar decimal directo
+  if (typeof ml === 'object') {
+    if (ml.decimal != null && !isNaN(ml.decimal)) return +Number(ml.decimal).toFixed(2);
+    if (ml.value != null && !isNaN(ml.value)) return +Number(ml.value).toFixed(2);
+    var amStr = ml.american || ml.displayValue;
+    if (typeof amStr === 'string') {
+      var n = parseInt(amStr.replace(/[^\-0-9]/g, ''), 10);
+      if (!isNaN(n)) return americanToDecimal_(n);
+    }
+    return null;
+  }
+  // Es número (formato American)
+  var am = Number(ml);
+  if (isNaN(am) || am === 0) return null;
+  return +(am > 0 ? am / 100 + 1 : 100 / Math.abs(am) + 1).toFixed(2);
+}
+
+// Wrapper para ESPN core API (host distinto)
+function espnGetCore_(path) {
+  var url = 'https://sports.core.api.espn.com/v2' + path;
+  var res = UrlFetchApp.fetch(url, { method: 'get', muteHttpExceptions: true });
+  var code = res.getResponseCode();
+  if (code < 200 || code >= 300) {
+    throw new Error('http_' + code);
+  }
+  return JSON.parse(res.getContentText());
 }
 
 function clearSandbox_() {

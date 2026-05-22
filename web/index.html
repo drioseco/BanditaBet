@@ -242,6 +242,35 @@
     </div>
 
     <div class="acard" style="grid-column:1/-1">
+      <div class="atitle">🎯 Importar cuotas (propuesta · Fac L/E/V)</div>
+      <div class="sync-help">
+        Trae cuotas pre-partido desde la API y muestra una propuesta por partido.
+        Click "Aplicar" para escribir esas cuotas al fixture (usa el endpoint
+        <code>updateFactors</code>). Se previsualiza primero, nada se aplica solo.
+      </div>
+      <div class="fg f3">
+        <div><label class="fl2">Desde (días atrás)</label>
+          <select class="fi" id="o-from">
+            <option value="0" selected>hoy</option>
+            <option value="3">3</option>
+            <option value="7">7</option>
+          </select>
+        </div>
+        <div><label class="fl2">Hasta (días adelante)</label>
+          <select class="fi" id="o-to">
+            <option value="7">7 días</option>
+            <option value="14" selected>14 días</option>
+            <option value="30">30 días</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="btn-a" id="btn-fetch-odds">🎯 Traer propuestas</button>
+        </div>
+      </div>
+      <div id="o-proposals"></div>
+    </div>
+
+    <div class="acard" style="grid-column:1/-1">
       <div class="atitle">↻ Importar resultados (sandbox · sin tocar Liga real)</div>
       <div class="sync-help">
         <strong>Modo prueba:</strong> consulta la API de fútbol y escribe los resultados a una hoja aparte

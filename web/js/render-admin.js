@@ -1,6 +1,6 @@
 // Admin view — cargar resultados, agregar fixtures, info de sync.
 import { getState, setState } from './state.js?v=20260516qa10';
-import { setMatchResult, addMatch as apiAddMatch, updateFactors as apiUpdateFactors, fetchResults as apiFetchResults, clearSandbox as apiClearSandbox, refreshSyncStatus } from './api.js?v=20260516qa10';
+import { setMatchResult, addMatch as apiAddMatch, updateFactors as apiUpdateFactors, fetchResults as apiFetchResults, fetchOdds as apiFetchOdds, clearSandbox as apiClearSandbox, refreshSyncStatus } from './api.js?v=20260516qa10';
 import { toast, fireConfetti } from './game-fx.js?v=20260516qa10';
 
 export function renderAdmin() {
@@ -28,6 +28,7 @@ export function renderAdmin() {
     document.getElementById('btn-update-factors').onclick = updateFactorsHandler;
     document.getElementById('btn-fetch-results').onclick = importResultsHandler;
     document.getElementById('btn-clear-sandbox').onclick = clearSandboxHandler;
+    document.getElementById('btn-fetch-odds').onclick = fetchOddsHandler;
     renderAdmin._wired = true;
   }
 }
@@ -75,6 +76,103 @@ async function importResultsHandler() {
   } finally {
     btn.disabled = false;
     btn.textContent = orig;
+  }
+}
+
+// qa21 — Propuestas de cuotas
+async function fetchOddsHandler() {
+  const btn = document.getElementById('btn-fetch-odds');
+  const container = document.getElementById('o-proposals');
+  const fromDays = parseInt(document.getElementById('o-from').value, 10);
+  const toDays   = parseInt(document.getElementById('o-to').value, 10);
+  const today = new Date();
+  const from = ymdISO_(new Date(today.getTime() - fromDays * 86400000));
+  const to   = ymdISO_(new Date(today.getTime() + toDays * 86400000));
+
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Consultando…';
+  container.innerHTML = '';
+  try {
+    const r = await apiFetchOdds({ from, to });
+    if (!r.ok) {
+      container.innerHTML = `<div class="sync-help"><strong style="color:var(--bb-tomate)">Error:</strong> ${r.error}</div>`;
+      return;
+    }
+    const props = r.proposals || [];
+    if (!props.length) {
+      container.innerHTML = `<div class="sync-help">No hay propuestas. ${r.skipped_no_odds} partidos sin odds disponibles, ${r.skipped_unmatched} sin matchear.</div>`;
+      return;
+    }
+    container.innerHTML = `
+      <div class="sync-help"><strong>${props.length} propuestas</strong> · fuente: ${r.source} · skipped: ${r.skipped_no_odds} sin odds, ${r.skipped_unmatched} sin match</div>
+      <div class="prop-list">
+        ${props.map(p => renderProposal_(p)).join('')}
+      </div>`;
+    container.querySelectorAll('[data-apply]').forEach(btn => {
+      btn.onclick = () => applyProposalHandler(btn);
+    });
+  } catch (e) {
+    container.innerHTML = `<div class="sync-help"><strong style="color:var(--bb-tomate)">Falló:</strong> ${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+}
+
+function renderProposal_(p) {
+  const cur = p.current || {};
+  const prop = p.proposal || {};
+  const fmt = v => v == null ? '—' : Number(v).toFixed(2);
+  const hasOld = cur.fl != null || cur.fe != null || cur.fv != null;
+  return `
+    <div class="prop-row" data-match-id="${p.match_id}"
+         data-fl="${prop.fl ?? ''}" data-fe="${prop.fe ?? ''}" data-fv="${prop.fv ?? ''}">
+      <div class="prop-info">
+        <div class="prop-date">${p.match_date}</div>
+        <div class="prop-teams">${p.home_team} <em>vs</em> ${p.away_team}</div>
+      </div>
+      <div class="prop-odds">
+        <div class="prop-cell"><b>${fmt(prop.fl)}</b><small>Fac L</small></div>
+        <div class="prop-cell"><b>${fmt(prop.fe)}</b><small>Empate</small></div>
+        <div class="prop-cell"><b>${fmt(prop.fv)}</b><small>Fac V</small></div>
+      </div>
+      ${hasOld ? `<div class="prop-current">Actual: L:${fmt(cur.fl)} E:${fmt(cur.fe)} V:${fmt(cur.fv)}</div>` : '<div class="prop-current prop-empty">Sin cuotas cargadas</div>'}
+      <button class="btn-a prop-apply" data-apply="1">★ Aplicar al fixture</button>
+    </div>`;
+}
+
+async function applyProposalHandler(btn) {
+  const row = btn.closest('.prop-row');
+  const matchId = row.dataset.matchId;
+  const fl = parseFloat(row.dataset.fl);
+  const fe = parseFloat(row.dataset.fe);
+  const fv = parseFloat(row.dataset.fv);
+  const teams = row.querySelector('.prop-teams')?.textContent || matchId;
+  if (!confirm(`¿Aplicar cuotas L:${fl} E:${fe} V:${fv} a ${teams}?`)) return;
+  btn.disabled = true;
+  btn.textContent = '⏳';
+  try {
+    const res = await apiUpdateFactors(matchId, {
+      factor_home: isNaN(fl) ? null : fl,
+      factor_draw: isNaN(fe) ? null : fe,
+      factor_away: isNaN(fv) ? null : fv,
+    });
+    if (!res.ok) throw new Error(res.error || 'update_failed');
+    toast(`★ Cuotas aplicadas — L:${fl} E:${fe} V:${fv}`);
+    // merge optimista en state
+    const ms = getState().matches.slice();
+    const idx = ms.findIndex(x => x.id === matchId);
+    if (idx >= 0) {
+      ms[idx] = { ...ms[idx], factor_home: fl, factor_draw: fe, factor_away: fv };
+    }
+    setState({ matches: ms });
+    btn.textContent = '✓ Aplicado';
+    btn.style.background = 'var(--bb-pasto)';
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+    btn.disabled = false;
+    btn.textContent = '★ Aplicar al fixture';
   }
 }
 
