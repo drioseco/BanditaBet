@@ -1,6 +1,6 @@
 // Admin view — cargar resultados, agregar fixtures, info de sync.
 import { getState, setState } from './state.js?v=20260516qa10';
-import { setMatchResult, addMatch as apiAddMatch, updateFactors as apiUpdateFactors, refreshSyncStatus } from './api.js?v=20260516qa10';
+import { setMatchResult, addMatch as apiAddMatch, updateFactors as apiUpdateFactors, fetchResults as apiFetchResults, clearSandbox as apiClearSandbox, refreshSyncStatus } from './api.js?v=20260516qa10';
 import { toast, fireConfetti } from './game-fx.js?v=20260516qa10';
 
 export function renderAdmin() {
@@ -26,7 +26,67 @@ export function renderAdmin() {
     document.getElementById('f-round').onchange = () => fillMatchList('f');
     document.getElementById('f-only-empty').onchange = () => fillMatchList('f');
     document.getElementById('btn-update-factors').onclick = updateFactorsHandler;
+    document.getElementById('btn-fetch-results').onclick = importResultsHandler;
+    document.getElementById('btn-clear-sandbox').onclick = clearSandboxHandler;
     renderAdmin._wired = true;
+  }
+}
+
+// ── qa17: Importar resultados desde API (sandbox) ──────────────────
+function ymdISO_(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+async function importResultsHandler() {
+  const fromDays = parseInt(document.getElementById('i-from').value, 10);
+  const toDays   = parseInt(document.getElementById('i-to').value, 10);
+  const now = new Date();
+  const from = new Date(now); from.setDate(from.getDate() - fromDays);
+  const to   = new Date(now); to.setDate(to.getDate() + toDays);
+  const btn = document.getElementById('btn-fetch-results');
+  const resEl = document.getElementById('i-result');
+  btn.disabled = true;
+  const orig = btn.textContent;
+  btn.textContent = '⏳ Importando…';
+  resEl.style.display = 'block';
+  resEl.innerHTML = '<strong>Consultando API-Football…</strong>';
+  try {
+    const r = await apiFetchResults({ from: ymdISO_(from), to: ymdISO_(to) });
+    if (!r.ok) {
+      const hint = r.hint ? ` <em>${r.hint}</em>` : '';
+      resEl.innerHTML = `<strong style="color:var(--bb-tomate)">Error:</strong> ${r.error}.${hint}`;
+      return;
+    }
+    const unmatched = (r.unmatched || []).join(', ') || '—';
+    resEl.innerHTML = `
+      <strong>✓ Importados ${r.fetched} fixtures a <code>${r.sandbox_sheet}</code></strong><br>
+      📋 ${r.matched} matched contra Liga · <b>${r.would_update}</b> would_update · ${r.already_filled} ya tenían score<br>
+      ❌ Sin matchear: <em>${unmatched}</em><br>
+      Abrí la pestaña <code>${r.sandbox_sheet}</code> en el Sheet para revisar fila por fila.
+    `;
+    toast(`★ ${r.fetched} fixtures importados a sandbox`);
+  } catch (e) {
+    resEl.innerHTML = `<strong style="color:var(--bb-tomate)">Falló:</strong> ${e.message}`;
+    toast('Error: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+}
+
+async function clearSandboxHandler() {
+  if (!confirm('¿Limpiar la hoja _API_test? (no afecta Liga de Primera)')) return;
+  const btn = document.getElementById('btn-clear-sandbox');
+  btn.disabled = true;
+  try {
+    const r = await apiClearSandbox();
+    toast(r.ok ? `★ Sandbox limpiada (${r.cleared} filas)` : 'Error: ' + r.error, r.ok ? '' : 'err');
+    const resEl = document.getElementById('i-result');
+    if (resEl) resEl.style.display = 'none';
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
   }
 }
 

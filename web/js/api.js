@@ -110,3 +110,11 @@ export async function updateFactors(matchId, { factor_home, factor_draw, factor_
   if (factor_away != null) params.factor_away = factor_away;
   return post('updateFactors', params);
 }
+
+// qa17 — Importar resultados desde API-Football (sandbox)
+export async function fetchResults({ from, to } = {}) {
+  return post('fetchResults', { from: from || '', to: to || '' });
+}
+export async function clearSandbox() {
+  return post('clearSandbox', {});
+}

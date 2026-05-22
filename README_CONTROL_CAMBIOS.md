@@ -1629,3 +1629,110 @@ Refrescás la app y el escudo aparece. No requiere cambios en JS.
   api-sports.io si alguna vez bloquean hotlinking.
 - **Variante dark mode:** algunos escudos en PNG transparente se ven mal sobre fondo
   oscuro — posible filter CSS o variante de URL.
+
+---
+
+## qa17 — Carga automática de resultados (modo sandbox)
+
+**Fecha:** 21 mayo 2026
+**Rama:** main
+
+### Qué se construyó
+
+Una manera de **tirar resultados desde una API de fútbol** sin riesgo de corromper
+el Sheet de producción. Toda la importación va a una hoja sandbox separada
+(`_API_test`) donde el admin puede revisar antes de promover.
+
+### Por qué sandbox y no escribir directo a Liga
+
+Si la API trae un resultado equivocado, o el matching de equipos falla, los datos
+reales del Sheet quedan intactos. La hoja `_API_test` muestra:
+
+| Col | Significado |
+|---|---|
+| A | Fecha del partido (de la API) |
+| B-C | Equipos como los nombra la API |
+| D-E | Marcador según la API |
+| F | Status (FT, NS, PST, etc.) |
+| G | Y/N — si matcheamos contra un partido en Liga |
+| H-I | Nombres en el Sheet (vacío si no matchea) |
+| J | Fila de Liga donde estaría |
+| K | Y/N — si esa fila ya tenía score |
+| L | Y/N — si en producción esto escribiría algo nuevo |
+| M | Timestamp del import |
+
+Así el admin ve TODA la info para decidir.
+
+### Fuente
+
+API-Football vía `api-sports.io`. Free tier 100 requests/día (mucho de sobra: 1
+call trae todos los partidos de un rango). Cobertura de Liga Chile = league id `265`.
+
+### Setup (paso por paso, una vez)
+
+1. Crear cuenta gratis en `https://dashboard.api-football.com/register`.
+2. Copiar la API key del dashboard.
+3. Abrir el editor de Apps Script del proyecto.
+4. ⚙️ Configuración del proyecto → "Propiedades del secuencia de comandos" → agregar:
+   - Propiedad: `APIFOOTBALL_KEY`
+   - Valor: la key copiada
+5. (Opcional) Crear pestaña `_API_test` en el Sheet. Si no existe, el script la crea
+   automáticamente en la primera ejecución con sus 13 headers.
+
+### Cómo usar
+
+1. Abrir la app → Gestión → tarjeta "↻ Importar resultados (sandbox)".
+2. Elegir rango (default: últimos 7 días → hoy).
+3. Click "↻ Importar". Esperar el resumen:
+   - `✓ Importados N fixtures a _API_test`
+   - `📋 M matched contra Liga · K would_update · J ya tenían score`
+   - `❌ Sin matchear: [Equipo X, Equipo Y]`
+4. Abrir la pestaña `_API_test` del Sheet → revisar fila por fila.
+5. Si hay equipos en "sin matchear", agregar aliases (ver abajo).
+
+### Cómo agregar aliases
+
+Cuando un nombre de equipo en la API no matchea (ej: API dice `"Universidad Catolica"`
+pero el Sheet tiene `"U. Católica"`), agregar al objeto `TEAM_ALIASES` en
+`apps-script/Code.gs`:
+
+```js
+"Universidad Catolica": "U. Católica",
+```
+
+Guardar el script. Limpiar sandbox y volver a importar — esta vez matchea.
+
+### Archivos modificados
+
+- `apps-script/Code.gs` — nuevas constantes (`APIFOOTBALL_BASE`,
+  `APIFOOTBALL_LEAGUES`, `SANDBOX_SHEET_NAME`, `SANDBOX_HEADERS`, `TEAM_ALIASES`),
+  funciones `fetchResults_`, `clearSandbox_`, helpers `apiFootballGet_`,
+  `resolveTeamName_`, `ensureSandboxSheet_`, `ymd_`, `addDays_`, y la función test
+  `test_fetch_results`. Reutiliza `buildMatchIndex_`, `colIndexes_`, `SHEETS.liga.parser`.
+- `web/index.html` — nueva acard "Importar resultados (sandbox)" en Gestión.
+- `web/js/api.js` — exports `fetchResults`, `clearSandbox`.
+- `web/js/render-admin.js` — handlers `importResultsHandler`, `clearSandboxHandler`,
+  helper `ymdISO_`, wiring.
+
+### Lo que esta feature NO hace (intencional)
+
+- ❌ **No escribe en `Liga de Primera`.** Cero riesgo de corromper datos reales.
+- ❌ **No dispara `onEdit` ni `recomputeRow_`.** Esos solo corren con edición real.
+- ❌ **No corre automático.** Solo cuando el admin clickea.
+- ❌ **No cubre Experto** todavía (Champions/Libertadores).
+- ❌ **No carga cuotas** todavía, solo marcadores.
+
+### Archivos clave (estado qa17)
+
+- `apps-script/Code.gs` — `fetchResults_`, `TEAM_ALIASES`, helpers API
+- `web/js/render-admin.js` — `importResultsHandler`
+
+### Next steps (qa18 cuando este corte se valide)
+
+- **Botón "Promover a Liga real":** copia rows con `would_update=Y` del sandbox a
+  `Liga de Primera` → `onEdit` dispara → puntos calculados automáticamente.
+- **Cron automático:** trigger `everyMinutes(30)` corriendo `fetchResults_` →
+  sandbox. El admin solo revisa y promueve.
+- **Cobertura Experto:** agregar league IDs (Champions, Libertadores, etc.) a
+  `APIFOOTBALL_LEAGUES.experto`.
+- **Auto-cuotas:** endpoint `/odds` para Fac L/E/V pre-partido.

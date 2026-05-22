@@ -58,6 +58,45 @@ var SHEETS = {
 var PLAYERS = ['Dari', 'Kmi', 'Blopa', 'Pela'];
 var PLAYER_COLORS = { Dari: '#1E4FB8', Kmi: '#E8442C', Blopa: '#E8B33D', Pela: '#2E6B3A' };
 
+// ── API-Football (sandbox) ──────────────────────────────────────────
+// Carga automática de resultados a una hoja aparte (_API_test). NO toca
+// las hojas de producción. Ver qa17.
+var APIFOOTBALL_BASE = 'https://v3.football.api-sports.io';
+var APIFOOTBALL_LEAGUES = {
+  liga: { id: 265, season: 2026 }   // Liga de Primera Chile
+};
+var SANDBOX_SHEET_NAME = '_API_test';
+var SANDBOX_HEADERS = [
+  'fecha_partido','home_team_api','away_team_api','home_score','away_score',
+  'status','matched_in_sheet','sheet_home_team','sheet_away_team',
+  'sheet_row','sheet_has_score','would_update','imported_at'
+];
+// Mapeo de nombres API → nombres en el Sheet. Iterar agregando los que aparezcan
+// como "unmatched" en la respuesta de fetchResults.
+var TEAM_ALIASES = {
+  "Universidad de Chile": "U. de Chile",
+  "Universidad Catolica": "U. Católica",
+  "Universidad Católica": "U. Católica",
+  "Deportes La Serena":   "La Serena",
+  "Deportes Iquique":     "Iquique",
+  "Deportes Limache":     "Limache",
+  "Deportes Copiapo":     "Copiapó",
+  "Union La Calera":      "La Calera",
+  "Union Espanola":       "U. Española",
+  "Unión Española":       "U. Española",
+  "Coquimbo Unido":       "Coquimbo Unido",
+  "Audax Italiano":       "Audax Italiano",
+  "Cobresal":             "Cobresal",
+  "Huachipato":           "Huachipato",
+  "Palestino":            "Palestino",
+  "Colo Colo":            "Colo Colo",
+  "Colo-Colo":            "Colo Colo",
+  "Everton":              "Everton",
+  "O'Higgins":            "O'Higgins",
+  "Nublense":             "Ñublense",
+  "Ñublense":             "Ñublense"
+};
+
 // ── Web App entry points ───────────────────────────────────────────
 function doGet(e) {
   return jsonResp(handle((e.parameter && e.parameter.action) || 'state', e.parameter || {}));
@@ -85,6 +124,8 @@ function handle(action, p) {
       case 'setResult':    return setResult_(p);
       case 'addMatch':     return addMatch_(p);
       case 'updateFactors': return updateFactors_(p);
+      case 'fetchResults':  return fetchResults_(p);
+      case 'clearSandbox':  return clearSandbox_();
       default:             return { ok: false, error: 'unknown_action', got: action };
     }
   } catch (err) {
@@ -634,7 +675,171 @@ function isPlayed_(m) {
 function str_(v) { return v == null ? '' : String(v).trim(); }
 function log_(/* ...args */) { try { console.log.apply(console, arguments); } catch (_) {} }
 
+// ── API-Football fetch (sandbox) ───────────────────────────────────
+// Consulta resultados de la API y los escribe a la hoja _API_test
+// (NO toca Liga de Primera). Ver plan qa17.
+function fetchResults_(p) {
+  var key = PropertiesService.getScriptProperties().getProperty('APIFOOTBALL_KEY');
+  if (!key) return { ok: false, error: 'missing_api_key', hint: 'Configurá APIFOOTBALL_KEY en Properties del script' };
+
+  // Defaults: últimos 7 días → hoy
+  var today = new Date();
+  var fromDate = p.from || ymd_(addDays_(today, -7));
+  var toDate   = p.to   || ymd_(today);
+
+  var league = APIFOOTBALL_LEAGUES.liga;
+  var resp;
+  try {
+    resp = apiFootballGet_('/fixtures', {
+      league: league.id, season: league.season,
+      from: fromDate, to: toDate
+    });
+  } catch (err) {
+    return { ok: false, error: 'api_call_failed', detail: String(err && err.message) };
+  }
+  if (!resp || !resp.response) {
+    return { ok: false, error: 'api_bad_response', detail: JSON.stringify(resp).slice(0, 300) };
+  }
+
+  var fixtures = resp.response || [];
+  var ss = SpreadsheetApp.getActive();
+  var sandbox = ensureSandboxSheet_(ss);
+
+  // Limpiar sandbox (excepto headers)
+  var lastRow = sandbox.getLastRow();
+  if (lastRow > 1) sandbox.getRange(2, 1, lastRow - 1, SANDBOX_HEADERS.length).clearContent();
+
+  // Index para matching contra Liga
+  var matchIndex = buildMatchIndex_(ss);
+  var ligaSheet  = ss.getSheetByName(SHEETS.liga.name);
+  var IDX        = colIndexes_('liga');
+
+  var rows = [];
+  var matched = 0, wouldUpdate = 0, alreadyFilled = 0;
+  var unmatchedSet = {};
+  var now = new Date().toISOString();
+
+  fixtures.forEach(function (fx) {
+    var fxDate = fx.fixture && fx.fixture.date ? fx.fixture.date.slice(0, 10) : '';
+    var homeApi = (fx.teams && fx.teams.home && fx.teams.home.name) || '';
+    var awayApi = (fx.teams && fx.teams.away && fx.teams.away.name) || '';
+    var hs = fx.goals && fx.goals.home != null ? fx.goals.home : '';
+    var as_ = fx.goals && fx.goals.away != null ? fx.goals.away : '';
+    var status = (fx.fixture && fx.fixture.status && fx.fixture.status.short) || '';
+
+    var homeSheet = resolveTeamName_(homeApi);
+    var awaySheet = resolveTeamName_(awayApi);
+
+    // Buscar en el index de matches del Sheet (matchId = sha1 de comp+home+away+date)
+    var sheetMatchId = detId_('match', 'liga', homeSheet, awaySheet, fxDate);
+    var loc = matchIndex[sheetMatchId];
+    var matchedYN = loc ? 'Y' : 'N';
+    var sheetHas = '', wouldUpd = '';
+    var sheetRow = '';
+
+    if (loc) {
+      matched++;
+      sheetRow = loc.row;
+      // Leer la fila real para ver si ya tiene score
+      var realRow = ligaSheet.getRange(loc.row, 1, 1, ligaSheet.getLastColumn()).getValues()[0];
+      var parsed = SHEETS.liga.parser(realRow, 'liga', loc.row - 1);
+      var hasScore = parsed && parsed.home_score != null && parsed.away_score != null;
+      sheetHas = hasScore ? 'Y' : 'N';
+      // Solo "would_update" si la API tiene score y el sheet no lo tiene
+      if (status === 'FT' && hs !== '' && as_ !== '' && !hasScore) {
+        wouldUpd = 'Y'; wouldUpdate++;
+      } else {
+        wouldUpd = 'N';
+        if (hasScore) alreadyFilled++;
+      }
+    } else {
+      // Trackear unmatched para que el admin agregue alias
+      if (!unmatchedSet[homeApi]) unmatchedSet[homeApi] = true;
+      if (!unmatchedSet[awayApi]) unmatchedSet[awayApi] = true;
+    }
+
+    rows.push([
+      fxDate, homeApi, awayApi, hs, as_, status,
+      matchedYN,
+      loc ? homeSheet : '', loc ? awaySheet : '',
+      sheetRow, sheetHas, wouldUpd, now
+    ]);
+  });
+
+  if (rows.length) {
+    sandbox.getRange(2, 1, rows.length, SANDBOX_HEADERS.length).setValues(rows);
+  }
+
+  var unmatched = Object.keys(unmatchedSet);
+  return {
+    ok: true,
+    fetched: fixtures.length,
+    matched: matched,
+    would_update: wouldUpdate,
+    already_filled: alreadyFilled,
+    unmatched: unmatched,
+    sandbox_sheet: SANDBOX_SHEET_NAME,
+    range: { from: fromDate, to: toDate }
+  };
+}
+
+function clearSandbox_() {
+  var ss = SpreadsheetApp.getActive();
+  var sandbox = ss.getSheetByName(SANDBOX_SHEET_NAME);
+  if (!sandbox) return { ok: true, cleared: 0, note: 'sandbox no existía' };
+  var lastRow = sandbox.getLastRow();
+  if (lastRow > 1) {
+    sandbox.getRange(2, 1, lastRow - 1, SANDBOX_HEADERS.length).clearContent();
+  }
+  return { ok: true, cleared: Math.max(0, lastRow - 1) };
+}
+
+// ── Helpers API-Football ────────────────────────────────────────────
+function apiFootballGet_(path, params) {
+  var key = PropertiesService.getScriptProperties().getProperty('APIFOOTBALL_KEY');
+  if (!key) throw new Error('missing_api_key');
+  var url = APIFOOTBALL_BASE + path;
+  var qs = Object.keys(params || {}).map(function (k) {
+    return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+  }).join('&');
+  if (qs) url += '?' + qs;
+  var res = UrlFetchApp.fetch(url, {
+    method: 'get',
+    headers: { 'x-apisports-key': key },
+    muteHttpExceptions: true
+  });
+  var code = res.getResponseCode();
+  if (code < 200 || code >= 300) {
+    throw new Error('http_' + code + ': ' + res.getContentText().slice(0, 200));
+  }
+  return JSON.parse(res.getContentText());
+}
+
+function resolveTeamName_(apiName) {
+  if (TEAM_ALIASES[apiName]) return TEAM_ALIASES[apiName];
+  return apiName; // fallback al nombre original
+}
+
+function ensureSandboxSheet_(ss) {
+  var s = ss.getSheetByName(SANDBOX_SHEET_NAME);
+  if (s) return s;
+  s = ss.insertSheet(SANDBOX_SHEET_NAME);
+  s.getRange(1, 1, 1, SANDBOX_HEADERS.length).setValues([SANDBOX_HEADERS]);
+  s.setFrozenRows(1);
+  return s;
+}
+
+function ymd_(d) {
+  return d.getFullYear() + '-' + pad_(d.getMonth() + 1) + '-' + pad_(d.getDate());
+}
+function addDays_(d, n) {
+  var x = new Date(d.getTime());
+  x.setDate(x.getDate() + n);
+  return x;
+}
+
 // ── Test desde el editor de Apps Script (clic "Run" en alguna) ─────
 function test_health()   { log_(JSON.stringify(health_(),   null, 2)); }
 function test_state()    { log_(JSON.stringify(getState_(), null, 2).slice(0, 4000)); }
 function test_status()   { log_(JSON.stringify(syncStatus_(),null, 2)); }
+function test_fetch_results() { log_(JSON.stringify(fetchResults_({}), null, 2)); }

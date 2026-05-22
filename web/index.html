@@ -242,6 +242,36 @@
     </div>
 
     <div class="acard" style="grid-column:1/-1">
+      <div class="atitle">↻ Importar resultados (sandbox · sin tocar Liga real)</div>
+      <div class="sync-help">
+        <strong>Modo prueba:</strong> consulta la API de fútbol y escribe los resultados a una hoja aparte
+        (<code>_API_test</code>) en el Sheet. <strong>NO modifica Liga de Primera.</strong> Sirve para verificar
+        el matching de equipos antes de promover a producción.
+      </div>
+      <div class="fg f3">
+        <div><label class="fl2">Desde (días atrás)</label>
+          <select class="fi" id="i-from">
+            <option value="3">3</option>
+            <option value="7" selected>7</option>
+            <option value="14">14</option>
+            <option value="30">30</option>
+          </select>
+        </div>
+        <div><label class="fl2">Hasta</label>
+          <select class="fi" id="i-to">
+            <option value="0" selected>hoy</option>
+            <option value="1">mañana</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:.4rem">
+          <button class="btn-a" id="btn-fetch-results">↻ Importar</button>
+          <button class="btn-a" id="btn-clear-sandbox" style="background:var(--bb-tomate)">🗑 Limpiar</button>
+        </div>
+      </div>
+      <div class="sync-help" id="i-result" style="display:none"></div>
+    </div>
+
+    <div class="acard" style="grid-column:1/-1">
       <div class="atitle">↳ Backend en Google Apps Script</div>
       <div class="sync-help" id="sync-help-info">Cargando…</div>
       <div class="sync-help">
