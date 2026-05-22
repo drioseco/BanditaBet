@@ -2167,15 +2167,35 @@ Test contra rango `2026-05-22 → 2026-06-05` (V9 live):
 
 ### Qué era el problema
 
-143 partidos con fecha futura tenían `0-0` literalmente escrito en las celdas
-de marcador local/visita del Sheet. No eran resultados reales — eran
-placeholders heredados del seed inicial (cuando se importó la planilla
-original al Sheet, probablemente desde un CSV/Excel donde las columnas de
-marcador venían pre-rellenadas con 0).
+El usuario preguntó por qué todos los partidos futuros de Liga de Primera tenían
+`0-0` en el Sheet, sospechando que eran placeholders y no resultados reales.
 
-Eso causó:
-1. El bug WO de qa18 (las celdas 0+0 se procesaban como empate real).
-2. Confusión semántica: ver el Sheet sin la app sugería resultados que no eran.
+### Investigación del origen
+
+Auditamos todas las funciones del backend que pueden escribir en las columnas
+`hScore`/`aScore`:
+
+| Función | ¿Escribe `0`? | Conclusión |
+|---|---|---|
+| `addMatch_` | ❌ Rellena con `''` (vacío) | OK |
+| `setResult_` | ⚠️ Solo con marcador explícito de Gestión | OK |
+| `savePicks_` | ❌ Solo toca columnas de picks | OK |
+| `onEdit` / `recomputeRow_` | ❌ No escribe scores | OK (post qa18) |
+| `updateFactors_` | ❌ Solo toca cuotas | OK |
+
+→ **Ninguna función escribe `0` automáticamente.** Los `0-0` fueron
+**insertados durante la carga inicial del Sheet**, probablemente al importar
+un CSV/Excel template donde las columnas de marcador venían pre-rellenadas
+con 0, o por un "fill down" manual al crear las filas.
+
+### Consecuencias que tenía
+
+143 partidos con fecha futura con `0-0` literal. Eso causó:
+1. **Bug WO de qa18**: las celdas 0+0 se procesaban como empate real
+   (`recomputeRow_` leía 2 números válidos, computaba `result='E'`, asignaba
+   `result_factor=factor_draw`, y los jugadores sin pick salían WO).
+2. **Confusión semántica**: si alguien miraba el Sheet sin pasar por la app,
+   veía marcadores 0-0 en partidos que no se habían jugado.
 
 ### Qué se construyó
 
