@@ -1875,3 +1875,99 @@ verdad hay que pivotar a una fuente con mejor cobertura (API-Football paid tier,
 - Evaluar si pagar API-Football paid tier vale la pena para automatizar carga.
 - O simplemente dejar la importación manual + el botón "↻ Importar" como
   herramienta de validación cuando aparezca data.
+
+---
+
+## qa19 — Pivot a ESPN API (8x mejor cobertura)
+
+**Fecha:** 21 mayo 2026
+**Rama:** main
+
+### Qué era el problema
+
+TheSportsDB (qa17) tenía cobertura miserable para Liga Chile 2026: solo **11
+partidos** disponibles cuando deberían haber ~80+ ya jugados. La feature de
+importación automática funcionaba técnicamente pero era inútil en la práctica.
+
+### Qué se construyó
+
+Pivot a **ESPN's public scoreboard API** que:
+- Es completamente free, sin auth, sin API key
+- Cubre Liga Chile 2026 con **92 partidos** (vs 11 de TheSportsDB)
+- Endpoint: `https://site.api.espn.com/apis/site/v2/sports/soccer/chi.1/scoreboard`
+- Soporta filtro por fechas: `?dates=YYYYMMDD-YYYYMMDD`
+
+### Cambios en el backend
+
+**Constantes nuevas** (reemplazan las de TheSportsDB):
+```js
+var ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
+var ESPN_LEAGUES = {
+  liga: { slug: 'chi.1' }   // Chile Primera División
+};
+```
+
+**Helpers nuevos:**
+- `espnGet_(path, params)` — wrapper de UrlFetchApp con muteHttpExceptions
+- `espnFetchRange_(leagueSlug, fromYMD, toYMD)` — pagina mes a mes porque ESPN
+  retorna ~30 días por request, con dedup por event id
+- `ymdCompact_(d)` — formato `YYYYMMDD` que ESPN espera
+
+**`fetchResults_` reescrito** para parsear el shape de ESPN:
+```
+events[].date                                  → fixture date
+events[].competitions[0].competitors[]         → array con homeAway: home/away
+  .team.displayName                            → nombre equipo
+  .score                                       → marcador
+events[].status.type.name | .description       → STATUS_FULL_TIME | "Full Time"
+```
+
+**Aliases agregado:** `"Everton CD" → "Everton"` (ESPN usa el nombre completo).
+
+### Verificación end-to-end
+
+Test contra el endpoint en producción con rango `2026-02-01 → 2026-05-21`:
+
+```json
+{
+  "ok": true,
+  "source": "ESPN",
+  "fetched": 92,
+  "matched": 77,
+  "would_update": 0,
+  "already_filled": 77,
+  "unmatched": ["Huachipato", "Universidad de Concepción", "O'Higgins", ...]
+}
+```
+
+**77 / 92 = 84% cobertura** (vs 14% antes). Salto de 8x.
+
+### Por qué 15 partidos quedan unmatched
+
+Los nombres de equipos en `unmatched` ya tienen aliases configurados. El bug es
+de **timezone**: ESPN guarda fechas en UTC, mientras que el Sheet usa fechas
+chilenas locales. Partidos jueves 21h Chile = viernes UTC, entonces el
+`matchId = sha1(comp + home + away + date)` no matchea.
+
+**Fix planeado (qa20):** modificar `buildMatchIndex_` o `resolveTeamName_` para
+intentar el match con `±1 día` además del día exacto. Es polish, no rompe nada
+crítico.
+
+### Archivos modificados
+
+- `apps-script/Code.gs`:
+  - Reemplazo de constantes TheSportsDB por ESPN
+  - `fetchResults_` reescrito para el shape de ESPN
+  - Helpers nuevos: `espnGet_`, `espnFetchRange_`, `ymdCompact_`
+  - Removidos: `sportsDBGet_`, `SPORTSDB_BASE`, `SPORTSDB_LEAGUES`
+- Apps Script **Versión 7** deployada
+
+### Roadmap actualizado
+
+- **qa20 (next):** matching con tolerancia de ±1 día para resolver los 15
+  partidos unmatched por timezone.
+- **qa21:** botón "Promover a Liga real" que copia rows con `would_update=Y`
+  del sandbox a producción.
+- **qa22:** cron `everyMinutes(30)` durante días de partido para auto-sync.
+- **qa23:** cobertura Experto (Champions, Libertadores) con sus respectivos
+  ESPN league slugs.
