@@ -488,6 +488,42 @@ function test_clean_future_bogus_results() {
   return { ok: true, cleaned: cleaned, detail: detail };
 }
 
+// Limpieza one-shot (qa22): borra el contenido de las celdas hScore/aScore
+// para todos los partidos con fecha futura. Esos 0-0 son placeholders
+// heredados del seed inicial del Sheet, no resultados reales. NO toca picks,
+// cuotas, resultado ni nada más — solo limpia las 2 celdas de marcador.
+function test_clean_future_placeholders() {
+  var ss = SpreadsheetApp.getActive();
+  var todayYMD = ymd_(new Date());
+  var cleaned = 0;
+  var detail = [];
+  for (var compId in SHEETS) {
+    var sheet = ss.getSheetByName(SHEETS[compId].name);
+    if (!sheet) continue;
+    var IDX = colIndexes_(compId);
+    var last = sheet.getLastRow();
+    for (var r = SHEETS[compId].headerRows + 1; r <= last; r++) {
+      var rowVals = sheet.getRange(r, 1, 1, sheet.getLastColumn()).getValues()[0];
+      var parsed = SHEETS[compId].parser(rowVals, compId, r - 1);
+      if (!parsed) continue;
+      if (!parsed.match_date || parsed.match_date <= todayYMD) continue;
+      var hs = rowVals[IDX.hScore];
+      var as_ = rowVals[IDX.aScore];
+      // Solo limpiamos si la celda tiene algo (placeholder 0 o lo que sea)
+      if ((hs === '' || hs == null) && (as_ === '' || as_ == null)) continue;
+      sheet.getRange(r, IDX.hScore + 1).setValue('');
+      sheet.getRange(r, IDX.aScore + 1).setValue('');
+      cleaned++;
+      if (detail.length < 30) {
+        detail.push(parsed.match_date + ' ' + parsed.home_team + ' vs ' + parsed.away_team);
+      }
+    }
+  }
+  log_('clean_future_placeholders: ' + cleaned + ' filas limpiadas');
+  log_(detail.join(' | '));
+  return { ok: true, cleaned: cleaned, sample: detail };
+}
+
 // Recompute manual desde el editor: corré test_recompute_all() para
 // arreglar TODOS los partidos que tengan score pero no factor.
 function test_recompute_all() {
@@ -1073,5 +1109,5 @@ function addDays_(d, n) {
 // ── Test desde el editor de Apps Script (clic "Run" en alguna) ─────
 function test_health()   { log_(JSON.stringify(health_(),   null, 2)); }
 function test_state()    { log_(JSON.stringify(getState_(), null, 2).slice(0, 4000)); }
-function test_status()   { log_(JSON.stringify(syncStatus_(),null, 2)); }
+function test_status()   { log_(JSON.stringify(test_clean_future_placeholders(),null, 2)); }  // TEMPORAL qa22
 function test_fetch_results() { log_(JSON.stringify(fetchResults_({}), null, 2)); }
