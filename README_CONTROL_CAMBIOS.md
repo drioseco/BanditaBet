@@ -1780,3 +1780,98 @@ futuro pivotamos de vuelta a API-Football (paid tier). No estorba.
 - **Cobertura Experto:** agregar league IDs (Champions, Libertadores, etc.) a
   `APIFOOTBALL_LEAGUES.experto`.
 - **Auto-cuotas:** endpoint `/odds` para Fac L/E/V pre-partido.
+
+---
+
+## qa18 — Bug fix: WO en partidos no jugados (placeholders 0-0)
+
+**Fecha:** 21 mayo 2026
+**Rama:** main
+
+### Qué era el problema
+
+El usuario reportó que la planilla tenía "muchos WO en partidos que no se han
+jugado". El leaderboard mostraba contadores de WO inflados (ej. Dari pasó de 3 a 9).
+
+### Causa raíz
+
+El `Sheet` tiene como convención poner `0` en las columnas de marcador local/visita
+para partidos futuros (placeholder pre-partido). Cuando hicimos `qa15`
+(`onEdit` trigger + `test_recompute_all`), la función `recomputeRow_` solo chequeaba:
+
+```js
+if (hs == null || as_ == null || isNaN(hs) || isNaN(as_)) return;
+```
+
+Pero `0` no es ni `null` ni `NaN`, entonces el chequeo no la frenaba. Resultado:
+los partidos futuros con placeholder `0-0` se procesaban como si fueran un **empate
+real 0-0** y la función escribía:
+
+- `result = 'E'`
+- `result_factor = factor_draw` (la cuota del empate)
+- `points = 0` para los 4 jugadores
+- `status = 'WO'` para todos los que no tenían pick cargado (la gran mayoría —
+  son partidos del futuro)
+
+### El fix
+
+**1. Patch en `recomputeRow_`:** ahora chequea si la fecha del partido es FUTURA
+antes de procesar. Si lo es, retorna sin tocar nada:
+
+```js
+var todayYMD = ymd_(new Date());
+var matchYMD = parsed.match_date;
+if (matchYMD && matchYMD > todayYMD) return;
+```
+
+**2. Limpieza retroactiva (`test_clean_future_bogus_results`):** función one-shot
+que recorre las dos hojas (Liga + Experto) y limpia las filas con:
+- `match_date > today` Y
+- `result_factor` cargado (síntoma del bug)
+
+Lo que limpia: `result`, `result_factor`, `points` (a 0) y `statuses` (a ' ').
+**NO toca picks reales** — los marcadores de los jugadores quedan intactos.
+
+### Resultado de la ejecución
+
+```
+clean_future_bogus: 86 filas limpiadas
+```
+
+Se limpiaron 86 partidos futuros que estaban mal marcados como "finished".
+
+| Jugador | WO antes | WO después | Δ |
+|---|---|---|---|
+| Blopa | 19 | 13 | -6 |
+| Dari | 9 | 3 | -6 |
+| Kmi | 2 | 2 | 0 |
+| Pela | 68 | 62 | -6 |
+
+Dari volvió a sus 3 WO originales (que era el valor "estable" antes del bug).
+
+### Archivos modificados
+
+- `apps-script/Code.gs`:
+  - `recomputeRow_` ahora chequea `match_date > today` antes de procesar
+  - Nueva función `test_clean_future_bogus_results` para reparación retroactiva
+- Apps Script Versión 6 sigue activa — el `onEdit` trigger (que es simple trigger,
+  no usa la versión publicada) ya corre con el código nuevo.
+
+### Lo segundo que el usuario reportó: "el sistema de detección de resultados no
+está funcionando"
+
+Lo investigamos también. El endpoint `fetchResults` sigue funcionando: 11/11
+matched. Lo que pasa es que **TheSportsDB tiene cobertura limitada** de Liga
+Chile 2026: solo trae 11 partidos cuando deberían haber ~70+ ya jugados a esta
+altura del año. La feature funciona, pero la fuente externa está atrasada.
+
+**Conclusión:** la lógica está OK pero la cobertura de TheSportsDB es insuficiente
+para reemplazar la carga manual. Para que la importación automática sea útil de
+verdad hay que pivotar a una fuente con mejor cobertura (API-Football paid tier,
+~$19/mes, o scraping de un sitio público).
+
+### Próximos pasos relacionados
+
+- Evaluar si pagar API-Football paid tier vale la pena para automatizar carga.
+- O simplemente dejar la importación manual + el botón "↻ Importar" como
+  herramienta de validación cuando aparezca data.
