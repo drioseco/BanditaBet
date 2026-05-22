@@ -892,5 +892,5 @@ function addDays_(d, n) {
 // ── Test desde el editor de Apps Script (clic "Run" en alguna) ─────
 function test_health()   { log_(JSON.stringify(health_(),   null, 2)); }
 function test_state()    { log_(JSON.stringify(getState_(), null, 2).slice(0, 4000)); }
-function test_status()   { log_(JSON.stringify(test_clean_future_bogus_results(),null, 2)); }  // TEMPORAL qa18: aliased a cleanup
+function test_status()   { log_(JSON.stringify(syncStatus_(),null, 2)); }
 function test_fetch_results() { log_(JSON.stringify(fetchResults_({}), null, 2)); }
