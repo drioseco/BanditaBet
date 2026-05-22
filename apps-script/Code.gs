@@ -762,8 +762,10 @@ function fetchResults_(p) {
 
   var rows = [];
   var matched = 0, wouldUpdate = 0, alreadyFilled = 0;
+  var future = 0;
   var unmatchedSet = {};
   var now = new Date().toISOString();
+  var todayYMD = ymd_(new Date());
 
   events.forEach(function (e) {
     var fxDate = (e.date || '').slice(0, 10);
@@ -779,7 +781,12 @@ function fetchResults_(p) {
     var asRaw = awayC && awayC.score;
     var hs = (hsRaw !== '' && hsRaw != null && !isNaN(parseInt(hsRaw, 10))) ? parseInt(hsRaw, 10) : '';
     var as_ = (asRaw !== '' && asRaw != null && !isNaN(parseInt(asRaw, 10))) ? parseInt(asRaw, 10) : '';
-    var status = (e.status && e.status.type && (e.status.type.description || e.status.type.name)) || '';
+    var statusRaw = (e.status && e.status.type && (e.status.type.description || e.status.type.name)) || '';
+
+    // qa20: si la fecha es posterior a hoy, no es "sin resultado" — es un partido
+    // programado para el futuro. Lo marcamos con etiqueta clara.
+    var isFuture = fxDate > todayYMD;
+    var status = isFuture ? ('Programado · se juega ' + fxDate) : statusRaw;
 
     var homeSheet = resolveTeamName_(homeApi);
     var awaySheet = resolveTeamName_(awayApi);
@@ -798,16 +805,24 @@ function fetchResults_(p) {
       var parsed = SHEETS.liga.parser(realRow, 'liga', loc.row - 1);
       var hasScore = parsed && parsed.home_score != null && parsed.away_score != null;
       sheetHas = hasScore ? 'Y' : 'N';
-      var finished = /Full Time|Match Finished|STATUS_FULL_TIME|FT/i.test(status);
-      if (finished && hs !== '' && as_ !== '' && !hasScore) {
+      var finished = /Full Time|Match Finished|STATUS_FULL_TIME|FT/i.test(statusRaw);
+      if (isFuture) {
+        // Partido futuro: no se considera para update aunque no tenga score
+        wouldUpd = 'future'; future++;
+      } else if (finished && hs !== '' && as_ !== '' && !hasScore) {
         wouldUpd = 'Y'; wouldUpdate++;
       } else {
         wouldUpd = 'N';
         if (hasScore) alreadyFilled++;
       }
     } else {
-      if (!unmatchedSet[homeApi]) unmatchedSet[homeApi] = true;
-      if (!unmatchedSet[awayApi]) unmatchedSet[awayApi] = true;
+      // Solo trackeamos como unmatched si NO es futuro (los futuros son ruido aceptable)
+      if (!isFuture) {
+        if (!unmatchedSet[homeApi]) unmatchedSet[homeApi] = true;
+        if (!unmatchedSet[awayApi]) unmatchedSet[awayApi] = true;
+      } else {
+        future++;
+      }
     }
 
     rows.push([
@@ -830,6 +845,7 @@ function fetchResults_(p) {
     matched: matched,
     would_update: wouldUpdate,
     already_filled: alreadyFilled,
+    future: future,
     unmatched: unmatched,
     sandbox_sheet: SANDBOX_SHEET_NAME,
     range: { from: fromDate, to: toDate }

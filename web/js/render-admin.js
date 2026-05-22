@@ -58,10 +58,14 @@ async function importResultsHandler() {
       return;
     }
     const unmatched = (r.unmatched || []).join(', ') || '—';
+    const futureLine = r.future != null
+      ? `📅 ${r.future} partidos futuros (programados, sin resultado todavía)<br>`
+      : '';
     resEl.innerHTML = `
       <strong>✓ Importados ${r.fetched} fixtures a <code>${r.sandbox_sheet}</code></strong><br>
       📋 ${r.matched} matched contra Liga · <b>${r.would_update}</b> would_update · ${r.already_filled} ya tenían score<br>
-      ❌ Sin matchear: <em>${unmatched}</em><br>
+      ${futureLine}
+      ❌ Sin matchear (jugados pero ausentes del Sheet): <em>${unmatched}</em><br>
       Abrí la pestaña <code>${r.sandbox_sheet}</code> en el Sheet para revisar fila por fila.
     `;
     toast(`★ ${r.fetched} fixtures importados a sandbox`);
