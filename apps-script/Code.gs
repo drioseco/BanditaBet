@@ -841,5 +841,12 @@ function addDays_(d, n) {
 // ── Test desde el editor de Apps Script (clic "Run" en alguna) ─────
 function test_health()   { log_(JSON.stringify(health_(),   null, 2)); }
 function test_state()    { log_(JSON.stringify(getState_(), null, 2).slice(0, 4000)); }
-function test_status()   { log_(JSON.stringify(fetchResults_({}),null, 2)); }  // TEMPORAL qa17: aliased a fetchResults para autorizar UrlFetchApp scope
+function test_status()   {
+  // TEMPORAL qa17: llama UrlFetchApp directo (sin try/catch) para forzar OAuth prompt
+  var r = UrlFetchApp.fetch('https://v3.football.api-sports.io/status', {
+    headers: { 'x-apisports-key': PropertiesService.getScriptProperties().getProperty('APIFOOTBALL_KEY') },
+    muteHttpExceptions: true
+  });
+  log_(r.getContentText().slice(0, 500));
+}
 function test_fetch_results() { log_(JSON.stringify(fetchResults_({}), null, 2)); }
