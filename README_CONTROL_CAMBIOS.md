@@ -1971,3 +1971,76 @@ crítico.
 - **qa22:** cron `everyMinutes(30)` durante días de partido para auto-sync.
 - **qa23:** cobertura Experto (Champions, Libertadores) con sus respectivos
   ESPN league slugs.
+
+---
+
+## qa20 — Partidos futuros separados de unmatched
+
+**Fecha:** 22 mayo 2026
+**Rama:** main
+
+### Qué era el problema
+
+En la respuesta del endpoint `fetchResults` los partidos PROGRAMADOS para el
+futuro caían dentro del cubo `unmatched` o `already_filled` cuando en realidad
+no son "sin resultado" — simplemente no se han jugado todavía. La distinción
+es importante para que el admin sepa qué requiere acción (cargar resultado) y
+qué es info nomás (partido que va a pasar).
+
+### Qué se construyó
+
+Regla en `fetchResults_`: si la fecha del partido es posterior a `today_YMD`:
+
+1. El campo `status` en el sandbox se reemplaza por `"Programado · se juega YYYY-MM-DD"`.
+2. El partido **no cuenta** en `unmatched` (era ruido falso).
+3. El partido **no cuenta** en `already_filled` ni `would_update`.
+4. Se cuenta en una nueva categoría `future` que va en la respuesta.
+
+### Estructura de la respuesta (actualizada)
+
+```json
+{
+  "ok": true,
+  "source": "ESPN",
+  "fetched": 31,
+  "matched": 21,
+  "would_update": 0,
+  "already_filled": 5,
+  "future": 22,
+  "unmatched": ["Coquimbo Unido", ...],
+  "sandbox_sheet": "_API_test"
+}
+```
+
+Interpretación:
+- **fetched** total que devolvió ESPN
+- **matched** filas que encontraron correspondencia en el Sheet (toda fecha)
+- **would_update** marcador disponible y el Sheet vacío → listo para promover
+- **already_filled** el Sheet ya tiene marcador cargado
+- **future** partidos posteriores a hoy (programados, sin resultado todavía)
+- **unmatched** SÓLO partidos jugados que no encuentran fila en el Sheet
+  (los que requieren agregar alias o investigar)
+
+### Frontend
+
+`importResultsHandler` ahora muestra una línea adicional en el resumen:
+
+```
+✓ Importados 31 fixtures a _API_test
+📋 21 matched contra Liga · 0 would_update · 5 ya tenían score
+📅 22 partidos futuros (programados, sin resultado todavía)
+❌ Sin matchear (jugados pero ausentes del Sheet): Coquimbo Unido, ...
+```
+
+### Archivos modificados
+
+- `apps-script/Code.gs` — `fetchResults_` calcula `isFuture` y categoriza
+- `web/js/render-admin.js` — handler muestra la línea `future`
+- Apps Script **Versión 8** deployada
+
+### Notas
+
+- Los unmatched que quedan (~8 equipos) corresponden a partidos pasados con
+  timezone shift. Esto se resolverá en qa21 (matching con tolerancia ±1 día).
+- La diferencia entre los 92 partidos totales de la season y los 21+22+... del
+  rango es porque el rango (15 may → 15 jun) cubre solo ~1 mes de Liga.
