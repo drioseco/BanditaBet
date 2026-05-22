@@ -398,6 +398,8 @@ function onEdit(e) {
 
 // Recalcula result, result_factor, puntos y status de UNA fila.
 // Si el partido no tiene los 2 marcadores cargados, no toca nada.
+// Si la fecha del partido es futura, tampoco actúa (los 0-0 en el Sheet
+// son placeholders pre-partido, no resultados reales — qa18 bugfix).
 function recomputeRow_(sheet, rowNum, compId) {
   var IDX = colIndexes_(compId);
   var rowVals = sheet.getRange(rowNum, 1, 1, sheet.getLastColumn()).getValues()[0];
@@ -408,6 +410,12 @@ function recomputeRow_(sheet, rowNum, compId) {
   var as_ = parsed.away_score;
   // Sin marcador completo → no actuamos (preserva lo que haya)
   if (hs == null || as_ == null || isNaN(hs) || isNaN(as_)) return;
+
+  // Si la fecha del partido es FUTURA, no calcular nada (probablemente 0-0 es placeholder).
+  // Comparamos solo fechas YYYY-MM-DD ignorando hora.
+  var todayYMD = ymd_(new Date());
+  var matchYMD = parsed.match_date;
+  if (matchYMD && matchYMD > todayYMD) return;
 
   var resultLetter = hs > as_ ? 'L' : hs < as_ ? 'V' : 'E';
   sheet.getRange(rowNum, IDX.result + 1).setValue(resultLetter);
@@ -436,6 +444,45 @@ function recomputeRow_(sheet, rowNum, compId) {
     sheet.getRange(rowNum, IDX.points[pName] + 1).setValue(pts);
     sheet.getRange(rowNum, IDX.statuses[pName] + 1).setValue(st);
   });
+}
+
+// Limpieza retroactiva (qa18 bugfix): borra result/result_factor/puntos/statuses
+// de partidos con fecha FUTURA que quedaron mal marcados como "jugados" cuando
+// recomputeRow_ procesó el 0-0 placeholder como empate.
+// Solo limpia partidos con (match_date > hoy) AND (score 0-0). NO toca picks reales.
+function test_clean_future_bogus_results() {
+  var ss = SpreadsheetApp.getActive();
+  var todayYMD = ymd_(new Date());
+  var cleaned = 0;
+  var detail = [];
+  for (var compId in SHEETS) {
+    var sheet = ss.getSheetByName(SHEETS[compId].name);
+    if (!sheet) continue;
+    var IDX = colIndexes_(compId);
+    var last = sheet.getLastRow();
+    for (var r = SHEETS[compId].headerRows + 1; r <= last; r++) {
+      var rowVals = sheet.getRange(r, 1, 1, sheet.getLastColumn()).getValues()[0];
+      var parsed = SHEETS[compId].parser(rowVals, compId, r - 1);
+      if (!parsed) continue;
+      // Sólo limpiamos partidos con fecha futura
+      if (!parsed.match_date || parsed.match_date <= todayYMD) continue;
+      // Sólo si tiene result_factor cargado (síntoma del bug)
+      var rfCell = sheet.getRange(r, IDX.factor + 1).getValue();
+      if (rfCell === '' || rfCell == null) continue;
+      // Limpiar: result, result_factor, puntos y status de los 4 jugadores
+      sheet.getRange(r, IDX.result + 1).setValue('');
+      sheet.getRange(r, IDX.factor + 1).setValue('');
+      PLAYERS.forEach(function (pName) {
+        sheet.getRange(r, IDX.points[pName] + 1).setValue(0);
+        sheet.getRange(r, IDX.statuses[pName] + 1).setValue(' ');
+      });
+      cleaned++;
+      detail.push(parsed.match_date + ' ' + parsed.home_team + ' vs ' + parsed.away_team);
+    }
+  }
+  log_('clean_future_bogus: ' + cleaned + ' filas limpiadas');
+  log_(detail.join(' | '));
+  return { ok: true, cleaned: cleaned, detail: detail };
 }
 
 // Recompute manual desde el editor: corré test_recompute_all() para
