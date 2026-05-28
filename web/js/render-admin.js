@@ -1,9 +1,48 @@
 // Admin view — cargar resultados, agregar fixtures, info de sync.
-import { getState, setState } from './state.js?v=20260516qa10';
-import { setMatchResult, addMatch as apiAddMatch, updateFactors as apiUpdateFactors, fetchResults as apiFetchResults, fetchOdds as apiFetchOdds, clearSandbox as apiClearSandbox, refreshSyncStatus } from './api.js?v=20260516qa10';
-import { toast, fireConfetti } from './game-fx.js?v=20260516qa10';
+import { getState, setState } from './state.js?v=20260527qa23';
+import { setMatchResult, addMatch as apiAddMatch, updateFactors as apiUpdateFactors, fetchResults as apiFetchResults, fetchOdds as apiFetchOdds, clearSandbox as apiClearSandbox, refreshSyncStatus, hasAdminPin, setAdminPin, AdminAuthError } from './api.js?v=20260527qa23';
+import { toast, fireConfetti } from './game-fx.js?v=20260527qa23';
+
+// ── qa23: PIN gate de Gestión ──────────────────────────────────────
+function promptAdminPin(reason) {
+  const msg = reason === 'invalid'
+    ? '🔒 PIN incorrecto. Reintentá:'
+    : '🔒 Sección protegida. Ingresá el PIN de admin:';
+  const pin = window.prompt(msg);
+  if (!pin) return false;
+  setAdminPin(pin.trim());
+  return true;
+}
+
+// Handler de errores para acciones admin: si el server rebota el PIN,
+// pide uno nuevo y devuelve true para que el caller pueda reintentar.
+async function handleAdminError(e) {
+  if (e instanceof AdminAuthError) {
+    const ok = promptAdminPin('invalid');
+    if (!ok) { toast('Cancelado', 'err'); return false; }
+    return true; // caller hace retry
+  }
+  toast('Error: ' + e.message, 'err');
+  return false;
+}
 
 export function renderAdmin() {
+  // qa23: si no hay PIN guardado, pedir antes de mostrar nada.
+  if (!hasAdminPin()) {
+    const got = promptAdminPin();
+    if (!got) {
+      const main = document.querySelector('main') || document.body;
+      const msg = document.createElement('div');
+      msg.className = 'sync-help';
+      msg.style.padding = '2rem';
+      msg.style.textAlign = 'center';
+      msg.innerHTML = '🔒 Esta sección requiere PIN de admin. Refrescá la página o cambiá de tab para reintentar.';
+      const view = document.getElementById('view-admin') || main;
+      view.innerHTML = '';
+      view.appendChild(msg);
+      return;
+    }
+  }
   fillRoundSel('a');
   fillRoundSel('f');
   refreshSyncStatus();
@@ -72,7 +111,7 @@ async function importResultsHandler() {
     toast(`★ ${r.fetched} fixtures importados a sandbox`);
   } catch (e) {
     resEl.innerHTML = `<strong style="color:var(--bb-tomate)">Falló:</strong> ${e.message}`;
-    toast('Error: ' + e.message, 'err');
+    await handleAdminError(e);
   } finally {
     btn.disabled = false;
     btn.textContent = orig;
@@ -170,7 +209,7 @@ async function applyProposalHandler(btn) {
     btn.textContent = '✓ Aplicado';
     btn.style.background = 'var(--bb-pasto)';
   } catch (e) {
-    toast('Error: ' + e.message, 'err');
+    await handleAdminError(e);
     btn.disabled = false;
     btn.textContent = '★ Aplicar al fixture';
   }
@@ -186,7 +225,7 @@ async function clearSandboxHandler() {
     const resEl = document.getElementById('i-result');
     if (resEl) resEl.style.display = 'none';
   } catch (e) {
-    toast('Error: ' + e.message, 'err');
+    await handleAdminError(e);
   } finally {
     btn.disabled = false;
   }
@@ -339,7 +378,7 @@ async function saveResult() {
     setState({ matches: ms });
     fillMatchList('a');
   } catch (e) {
-    toast('Error: ' + e.message, 'err');
+    await handleAdminError(e);
   }
 }
 
@@ -373,7 +412,7 @@ async function updateFactorsHandler() {
     // refrescar la lista (puede que el partido ya no aparezca con "solo sin cuotas")
     fillMatchList('f');
   } catch (e) {
-    toast('Error: ' + e.message, 'err');
+    await handleAdminError(e);
   }
 }
 
@@ -404,6 +443,6 @@ async function addMatchHandler() {
     fillRoundSel('a');
     fillRoundSel('f');
   } catch (e) {
-    toast('Error: ' + e.message, 'err');
+    await handleAdminError(e);
   }
 }

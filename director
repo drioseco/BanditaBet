@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# ============================================================================
+# director — router de complejidad para Claude Code
+# ----------------------------------------------------------------------------
+# Uso: ./director "tu instrucción de programación"
+#
+# 1. Pasa la instrucción a Claude Haiku con un prompt clasificador.
+# 2. Haiku responde SIMPLE o COMPLEX.
+# 3. Re-ejecuta `claude` con el modelo apropiado y la instrucción original.
+# ============================================================================
+
+set -euo pipefail
+
+# ---- 1. Validar argumento --------------------------------------------------
+if [[ $# -lt 1 || -z "${1:-}" ]]; then
+  echo "Uso: $0 \"tu instrucción\"" >&2
+  exit 1
+fi
+
+INSTRUCTION="$*"
+
+# ---- 2. Verificar que `claude` exista --------------------------------------
+if ! command -v claude >/dev/null 2>&1; then
+  echo "Error: el CLI 'claude' no está en el PATH." >&2
+  echo "Instalá Claude Code antes de usar director." >&2
+  exit 2
+fi
+
+# ---- 3. Clasificación con Haiku --------------------------------------------
+# Prompt diseñado para que devuelva UNA sola palabra: SIMPLE o COMPLEX.
+CLASSIFIER_PROMPT=$(cat <<EOF
+Clasifica la siguiente instrucción de programación en UNA sola palabra:
+
+- Responde "SIMPLE" si es: cambio de texto/copy, ajuste de UI, refactor básico,
+  rename, formatting, agregar logs, edits chicos sin lógica nueva.
+- Responde "COMPLEX" si es: lógica de base de datos, arquitectura, bug crítico,
+  diseño de sistema, decisiones de seguridad, performance crítica, integración
+  multi-archivo grande, o cualquier cosa con riesgo alto.
+
+Devolvé SOLO la palabra SIMPLE o COMPLEX, sin explicación, sin puntuación.
+
+Instrucción:
+$INSTRUCTION
+EOF
+)
+
+# Llamada rápida a Haiku en modo print (no interactiva).
+# `2>/dev/null` para no contaminar stdout con warnings.
+CLASSIFICATION=$(
+  printf '%s' "$CLASSIFIER_PROMPT" \
+    | claude -p --model haiku 2>/dev/null \
+    | tr '[:lower:]' '[:upper:]' \
+    | grep -oE 'SIMPLE|COMPLEX' \
+    | head -n1 \
+  || true
+)
+
+# Fallback: si Haiku no responde algo parseable, asumimos COMPLEX por seguridad.
+if [[ -z "${CLASSIFICATION:-}" ]]; then
+  echo "⚠️  Clasificador no devolvió respuesta válida — usando Opus por seguridad." >&2
+  CLASSIFICATION="COMPLEX"
+fi
+
+# ---- 4. Elegir modelo y ejecutar -------------------------------------------
+case "$CLASSIFICATION" in
+  SIMPLE)
+    MODEL="haiku"
+    ;;
+  COMPLEX)
+    MODEL="opus"
+    ;;
+  *)
+    echo "⚠️  Clasificación inesperada: $CLASSIFICATION — usando Opus por seguridad." >&2
+    MODEL="opus"
+    ;;
+esac
+
+echo "🎯 Clasificación: $CLASSIFICATION → modelo: $MODEL"
+echo "▶️  Ejecutando: claude --model $MODEL \"$INSTRUCTION\""
+echo "─────────────────────────────────────────────"
+
+exec claude --model "$MODEL" "$INSTRUCTION"

@@ -2,9 +2,9 @@
 // Home view — leaderboard, title race, narrative feed, próximos picks,
 // últimos resultados.
 // ════════════════════════════════════════════════════════════════════
-import { getState, setState, hasRes, hasPick, isFut, h2r, mDate, TODAY, hoursUntil, fmtPts } from './state.js?v=20260516qa10';
-import { CONFIG } from './config.js?v=20260516qa10';
-import { renderBadge, computeBadgesFor, computeXPFor, LEVEL_DEFS, computeMissionsFor } from './game-fx.js?v=20260516qa10';
+import { getState, setState, hasRes, hasPick, isFut, h2r, mDate, TODAY, hoursUntil, fmtPts } from './state.js?v=20260527qa23';
+import { CONFIG } from './config.js?v=20260527qa23';
+import { renderBadge, computeBadgesFor, computeXPFor, LEVEL_DEFS, computeMissionsFor } from './game-fx.js?v=20260527qa23';
 
 const PLAYERS = CONFIG.PLAYERS;
 

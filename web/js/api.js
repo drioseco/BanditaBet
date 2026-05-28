@@ -3,8 +3,39 @@
 // Todos los POST son form-encoded para esquivar el CORS preflight.
 // Si CONFIG.API_URL no está configurada, fallback a /data/seed.json.
 // ════════════════════════════════════════════════════════════════════
-import { CONFIG, API } from './config.js?v=20260516qa10';
-import { getState, setState } from './state.js?v=20260516qa10';
+import { CONFIG, API } from './config.js?v=20260527qa23';
+import { getState, setState } from './state.js?v=20260527qa23';
+
+// ── Admin PIN (qa23) ────────────────────────────────────────────────
+// Vive en sessionStorage → persiste hasta cerrar la pestaña.
+const ADMIN_PIN_KEY = 'bb_admin_pin';
+
+export function getAdminPin() {
+  try { return sessionStorage.getItem(ADMIN_PIN_KEY) || ''; }
+  catch { return ''; }
+}
+export function setAdminPin(pin) {
+  try {
+    if (pin) sessionStorage.setItem(ADMIN_PIN_KEY, pin);
+    else     sessionStorage.removeItem(ADMIN_PIN_KEY);
+  } catch {}
+}
+export function hasAdminPin() { return !!getAdminPin(); }
+
+// Error tipado para que el caller pueda re-prompt el PIN.
+export class AdminAuthError extends Error {
+  constructor(reason) { super(reason); this.name = 'AdminAuthError'; this.reason = reason; }
+}
+
+// Wrapper: agrega admin_pin al body y lanza AdminAuthError si rebota.
+async function postAdmin(action, params = {}) {
+  const res = await post(action, { ...params, admin_pin: getAdminPin() });
+  if (res && res.ok === false && (res.error === 'invalid_admin_pin' || res.error === 'admin_pin_not_configured')) {
+    setAdminPin(''); // limpio el malo
+    throw new AdminAuthError(res.error);
+  }
+  return res;
+}
 
 async function get(action, params = {}) {
   if (!API()) throw new Error('api_not_configured');
@@ -96,11 +127,11 @@ export async function savePicks(playerName, picksArr) {
 export async function setMatchResult(matchId, { home_score, away_score, factor }) {
   const params = { matchId, home_score, away_score };
   if (factor != null) params.factor = factor;
-  return post('setResult', params);
+  return postAdmin('setResult', params);
 }
 
 export async function addMatch(payload) {
-  return post('addMatch', payload);
+  return postAdmin('addMatch', payload);
 }
 
 export async function updateFactors(matchId, { factor_home, factor_draw, factor_away }) {
@@ -108,18 +139,18 @@ export async function updateFactors(matchId, { factor_home, factor_draw, factor_
   if (factor_home != null) params.factor_home = factor_home;
   if (factor_draw != null) params.factor_draw = factor_draw;
   if (factor_away != null) params.factor_away = factor_away;
-  return post('updateFactors', params);
+  return postAdmin('updateFactors', params);
 }
 
 // qa17 — Importar resultados desde API-Football (sandbox)
 export async function fetchResults({ from, to } = {}) {
-  return post('fetchResults', { from: from || '', to: to || '' });
+  return postAdmin('fetchResults', { from: from || '', to: to || '' });
 }
 export async function clearSandbox() {
-  return post('clearSandbox', {});
+  return postAdmin('clearSandbox', {});
 }
 
 // qa21 — Propuestas de cuotas desde API externa
 export async function fetchOdds({ from, to } = {}) {
-  return post('fetchOdds', { from: from || '', to: to || '' });
+  return postAdmin('fetchOdds', { from: from || '', to: to || '' });
 }

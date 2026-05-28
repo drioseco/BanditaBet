@@ -125,8 +125,28 @@ function doPost(e) {
   return jsonResp(handle(p.action || 'savePicks', p));
 }
 
+// ── Admin auth (qa23) ────────────────────────────────────────────────
+// Acciones que escriben/modifican el Sheet desde Gestión requieren PIN.
+// El PIN se guarda en Apps Script → Configuración del proyecto → Propiedades
+// del script → ADMIN_PIN. NO va al repo.
+var ADMIN_ACTIONS = ['setResult','addMatch','updateFactors','fetchResults','fetchOdds','clearSandbox'];
+
+function assertAdmin_(action, p) {
+  if (ADMIN_ACTIONS.indexOf(action) === -1) return null; // acción pública, ok
+  var expected = PropertiesService.getScriptProperties().getProperty('ADMIN_PIN');
+  if (!expected) {
+    return { ok: false, error: 'admin_pin_not_configured',
+             hint: 'Setear ADMIN_PIN en Apps Script → Project Settings → Script Properties.' };
+  }
+  var got = ((p && p.admin_pin) || '').toString();
+  if (got !== expected) return { ok: false, error: 'invalid_admin_pin' };
+  return null; // pasa
+}
+
 function handle(action, p) {
   try {
+    var authErr = assertAdmin_(action, p || {});
+    if (authErr) return authErr;
     switch (action) {
       case 'health':       return health_();
       case 'state':        return getState_();
