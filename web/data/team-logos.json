@@ -22,6 +22,7 @@
   "Unión Española":    { "url": "https://upload.wikimedia.org/wikipedia/en/9/93/Uni%C3%B3n_Espa%C3%B1ola_logo.png" },
   "Dep. Concepción":   { "url": "https://upload.wikimedia.org/wikipedia/commons/c/c9/Escudo_Deportes_Concepci%C3%B3n.svg" },
   "Deportes Concepción": { "url": "https://upload.wikimedia.org/wikipedia/commons/c/c9/Escudo_Deportes_Concepci%C3%B3n.svg" },
+  "U. de Concepción":  { "url": "https://upload.wikimedia.org/wikipedia/commons/c/c9/Escudo_Deportes_Concepci%C3%B3n.svg" },
   "Cobreloa":          { "url": "https://upload.wikimedia.org/wikipedia/commons/6/64/Escudo_cobreloa.svg" },
   "Copiapó":           { "url": "https://upload.wikimedia.org/wikipedia/en/7/7f/Deportes_Copiap%C3%B3.png" },
 
@@ -43,6 +44,10 @@
   "Sao Paulo (BRA)":        { "url": "https://upload.wikimedia.org/wikipedia/commons/f/f4/S%C3%A3o_Paulo_Futebol_Clube_logo_%282022%29.svg" },
   "Cruzeiro (BRA)":         { "url": "https://upload.wikimedia.org/wikipedia/commons/9/90/Cruzeiro_Esporte_Clube_%28logo%29.svg" },
   "Atlético Nacional (COL)":{ "url": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Atletico_Nacional_Logo.svg" },
+
+  "AC Milan (ITA)":          { "url": "https://upload.wikimedia.org/wikipedia/commons/d/d0/Logo_of_AC_Milan.svg" },
+  "RB Leipzig (ALE)":        { "url": "https://upload.wikimedia.org/wikipedia/commons/9/9d/RB_Leipzig_2014_logo.svg" },
+  "Bayer Leverkusen (ALE)":  { "url": "https://upload.wikimedia.org/wikipedia/en/7/76/Bayer_Leverkusen_logo.svg" },
 
   "Chile":     { "url": "https://upload.wikimedia.org/wikipedia/commons/f/f1/Federaci%C3%B3n_de_F%C3%BAtbol_de_Chile_logo.svg" },
   "Argentina": { "url": "https://upload.wikimedia.org/wikipedia/en/c/c1/Argentina_national_football_team_logo.svg" },
