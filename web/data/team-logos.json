@@ -49,6 +49,10 @@
   "RB Leipzig (ALE)":        { "url": "https://upload.wikimedia.org/wikipedia/commons/9/9d/RB_Leipzig_2014_logo.svg" },
   "Bayer Leverkusen (ALE)":  { "url": "https://upload.wikimedia.org/wikipedia/en/7/76/Bayer_Leverkusen_logo.svg" },
 
+  "Tottenham (ING)":         { "url": "https://upload.wikimedia.org/wikipedia/en/b/b4/Tottenham_Hotspur.svg" },
+  "Newcastle (ING)":         { "url": "https://upload.wikimedia.org/wikipedia/en/5/56/Newcastle_United_Logo.svg" },
+  "Chelsea (ING)":           { "url": "https://upload.wikimedia.org/wikipedia/en/c/cc/Chelsea_FC.svg" },
+
   "Chile":     { "url": "https://upload.wikimedia.org/wikipedia/commons/f/f1/Federaci%C3%B3n_de_F%C3%BAtbol_de_Chile_logo.svg" },
   "Argentina": { "url": "https://upload.wikimedia.org/wikipedia/en/c/c1/Argentina_national_football_team_logo.svg" },
   "Brasil":    { "url": "https://upload.wikimedia.org/wikipedia/commons/3/32/Confedera%C3%A7%C3%A3o_Brasileira_de_Futebol_logo_%282020%29.svg" }
