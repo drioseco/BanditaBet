@@ -684,22 +684,25 @@ function colIndexes_(compId) {
       statuses:{ Dari: 29, Kmi: 30, Blopa: 31, Pela: 32 },
     };
   }
-  // experto
+  // experto — OJO: la hoja "Partidos Experto" tiene una columna C vacía
+  // entre TORNEO (B) y DIA (D), así que de la fecha en adelante todo va
+  // corrido +1 respecto del layout antiguo. De 'home' en adelante es
+  // idéntico a Liga. (Fix qa28: el repo estaba desfasado vs la hoja real.)
   return {
-    torneo:  1,
-    date:    2,
-    home:    3,
-    hScore:  4,
-    aScore:  5,
-    away:    6,
-    fl:      7,
-    fe:      8,
-    fv:      9,
-    picks: { Dari: { l: 10, v: 11 }, Kmi: { l: 12, v: 13 }, Blopa: { l: 14, v: 15 }, Pela: { l: 16, v: 17 } },
-    result:  18,
-    factor:  19,
-    points:  { Dari: 24, Kmi: 25, Blopa: 26, Pela: 27 },
-    statuses:{ Dari: 28, Kmi: 29, Blopa: 30, Pela: 31 },
+    torneo:  1,   // B
+    date:    3,   // D · DIA
+    home:    4,   // E · LOCAL
+    hScore:  5,   // F
+    aScore:  6,   // G
+    away:    7,   // H · VISITA
+    fl:      8,   // I
+    fe:      9,   // J
+    fv:     10,   // K
+    picks: { Dari: { l: 11, v: 12 }, Kmi: { l: 13, v: 14 }, Blopa: { l: 15, v: 16 }, Pela: { l: 17, v: 18 } },
+    result:  19,
+    factor:  20,
+    points:  { Dari: 25, Kmi: 26, Blopa: 27, Pela: 28 },
+    statuses:{ Dari: 29, Kmi: 30, Blopa: 31, Pela: 32 },
   };
 }
 
@@ -731,28 +734,30 @@ function parseLigaRow(r, compId) {
 }
 
 function parseExpertoRow(r, compId) {
-  if (!r[3] || !r[6]) return null;
+  // Layout real de "Partidos Experto" (col C vacía → todo corrido +1 desde DIA).
+  // De LOCAL (E) en adelante es idéntico a Liga. Fix qa28.
+  if (!r[4] || !r[7]) return null;
   return {
-    round_name:   str_(r[1]) || null,
+    round_name:   str_(r[1]) || null,    // B · TORNEO
     venue:        null,
-    match_date:   dateOnly_(r[2]),
-    home_team:    str_(r[3]),
-    home_score:   numOrNull_(r[4]),
-    away_score:   numOrNull_(r[5]),
-    away_team:    str_(r[6]),
-    factor_home:  numOrNull_(r[7]),
-    factor_draw:  numOrNull_(r[8]),
-    factor_away:  numOrNull_(r[9]),
+    match_date:   dateOnly_(r[3]),        // D · DIA
+    home_team:    str_(r[4]),             // E · LOCAL
+    home_score:   numOrNull_(r[5]),       // F
+    away_score:   numOrNull_(r[6]),       // G
+    away_team:    str_(r[7]),             // H · VISITA
+    factor_home:  numOrNull_(r[8]),       // I
+    factor_draw:  numOrNull_(r[9]),       // J
+    factor_away:  numOrNull_(r[10]),      // K
     picks: {
-      Dari:  { home_score: numOrNull_(r[10]), away_score: numOrNull_(r[11]) },
-      Kmi:   { home_score: numOrNull_(r[12]), away_score: numOrNull_(r[13]) },
-      Blopa: { home_score: numOrNull_(r[14]), away_score: numOrNull_(r[15]) },
-      Pela:  { home_score: numOrNull_(r[16]), away_score: numOrNull_(r[17]) },
+      Dari:  { home_score: numOrNull_(r[11]), away_score: numOrNull_(r[12]) },
+      Kmi:   { home_score: numOrNull_(r[13]), away_score: numOrNull_(r[14]) },
+      Blopa: { home_score: numOrNull_(r[15]), away_score: numOrNull_(r[16]) },
+      Pela:  { home_score: numOrNull_(r[17]), away_score: numOrNull_(r[18]) },
     },
-    result: str_(r[18]) || null,
-    result_factor: numOrNull_(r[19]),
-    points:  { Dari: numOrNull_(r[24]) || 0, Kmi: numOrNull_(r[25]) || 0, Blopa: numOrNull_(r[26]) || 0, Pela: numOrNull_(r[27]) || 0 },
-    status_per_player: { Dari: str_(r[28]), Kmi: str_(r[29]), Blopa: str_(r[30]), Pela: str_(r[31]) },
+    result: str_(r[19]) || null,
+    result_factor: numOrNull_(r[20]),
+    points:  { Dari: numOrNull_(r[25]) || 0, Kmi: numOrNull_(r[26]) || 0, Blopa: numOrNull_(r[27]) || 0, Pela: numOrNull_(r[28]) || 0 },
+    status_per_player: { Dari: str_(r[29]), Kmi: str_(r[30]), Blopa: str_(r[31]), Pela: str_(r[32]) },
   };
 }
 
