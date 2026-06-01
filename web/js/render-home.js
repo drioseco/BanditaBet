@@ -2,9 +2,9 @@
 // Home view — leaderboard, title race, narrative feed, próximos picks,
 // últimos resultados.
 // ════════════════════════════════════════════════════════════════════
-import { getState, setState, hasRes, hasPick, isFut, h2r, mDate, TODAY, hoursUntil, fmtPts } from './state.js?v=20260527qa23';
-import { CONFIG } from './config.js?v=20260527qa23';
-import { renderBadge, computeBadgesFor, computeXPFor, LEVEL_DEFS, computeMissionsFor } from './game-fx.js?v=20260527qa23';
+import { getState, setState, hasRes, hasPick, isFut, h2r, mDate, TODAY, hoursUntil, fmtPts } from './state.js?v=20260531qa24';
+import { CONFIG } from './config.js?v=20260531qa24';
+import { renderBadge, computeBadgesFor, computeXPFor, LEVEL_DEFS, computeMissionsFor } from './game-fx.js?v=20260531qa24';
 
 const PLAYERS = CONFIG.PLAYERS;
 
@@ -571,6 +571,7 @@ function renderCronicaAuto() {
         </div>
         <div class="ca-right">
           <span class="ca-date">${dateStr}</span>
+          <button class="ca-share-btn ca-dl-btn" id="ca-download-btn">⬇ Descargar</button>
           <button class="ca-share-btn" id="ca-share-btn">⬆ Compartir</button>
         </div>
       </div>
@@ -609,6 +610,44 @@ function renderCronicaAuto() {
       navigator.share({ title: `BanditaBet · ${roundName}`, url });
     } else {
       navigator.clipboard?.writeText(url).then(() => window.bbToast?.('✓ Link copiado'));
+    }
+  };
+
+  // ── Descargar la crónica como imagen de alta calidad (qa24) ──────────
+  // Captura el <article> completo a PNG con pixelRatio 3 (retina-grade).
+  // html-to-image se carga on-demand desde CDN solo al primer click.
+  document.getElementById('ca-download-btn').onclick = async (e) => {
+    const btn = e.currentTarget;
+    const article = root.querySelector('.ca-article');
+    if (!article) return;
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ Generando…';
+    try {
+      const { toPng } = await import('https://esm.sh/html-to-image@1.11.13');
+      // Fondo sólido según el tema actual (evita PNG con fondo transparente)
+      const bg = getComputedStyle(article).backgroundColor || '#f4ecd8';
+      const dataUrl = await toPng(article, {
+        pixelRatio: 3,
+        backgroundColor: bg,
+        cacheBust: true,
+        // No incluir los botones en la imagen exportada
+        filter: (node) => !(node.tagName === 'BUTTON'),
+      });
+      const slug = roundName.toString().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      const a = document.createElement('a');
+      a.download = `banditabet-cronica-${slug || 'fecha'}.png`;
+      a.href = dataUrl;
+      a.click();
+      window.bbToast?.('✓ Crónica descargada');
+    } catch (err) {
+      console.error('[cronica] export error', err);
+      window.bbToast?.('No se pudo generar la imagen', 'err');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = orig;
     }
   };
 }

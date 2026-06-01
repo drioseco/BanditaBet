@@ -3,8 +3,8 @@
 // Todos los POST son form-encoded para esquivar el CORS preflight.
 // Si CONFIG.API_URL no está configurada, fallback a /data/seed.json.
 // ════════════════════════════════════════════════════════════════════
-import { CONFIG, API } from './config.js?v=20260527qa23';
-import { getState, setState } from './state.js?v=20260527qa23';
+import { CONFIG, API } from './config.js?v=20260531qa24';
+import { getState, setState } from './state.js?v=20260531qa24';
 
 // ── Admin PIN (qa23) ────────────────────────────────────────────────
 // Vive en sessionStorage → persiste hasta cerrar la pestaña.

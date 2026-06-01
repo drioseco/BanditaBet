@@ -12,7 +12,7 @@ const CDN_TEMPLATE = 'https://media.api-sports.io/football/teams/{id}.png';
 export async function loadTeamLogos() {
   if (_cache) return _cache;
   if (_loading) return _loading;
-  _loading = fetch('./data/team-logos.json?v=20260519qa16')
+  _loading = fetch('./data/team-logos.json?v=20260531qa24')
     .then(r => r.json())
     .then(j => (_cache = j))
     .catch(() => (_cache = {}));

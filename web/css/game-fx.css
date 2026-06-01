@@ -2034,6 +2034,17 @@
 .ca-share-btn:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 var(--bb-maroon); }
 .ca-share-btn:active { transform: none; box-shadow: none; }
 
+/* Variante "Descargar imagen" — outline claro para diferenciarla de Compartir */
+.ca-dl-btn {
+  background: var(--bb-cream);
+  color: var(--bb-ink);
+  border: 1.5px solid var(--bb-ink);
+  box-shadow: 2px 2px 0 var(--bb-ink);
+}
+.ca-dl-btn:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 var(--bb-ink); }
+.ca-dl-btn:active { transform: none; box-shadow: none; }
+.ca-dl-btn:disabled { opacity: .55; cursor: wait; transform: none; box-shadow: 2px 2px 0 var(--bb-ink); }
+
 /* ganador banner */
 .ca-winner-banner {
   display: flex; align-items: center; gap: 14px;

@@ -1,7 +1,7 @@
 // Admin view — cargar resultados, agregar fixtures, info de sync.
-import { getState, setState } from './state.js?v=20260527qa23';
-import { setMatchResult, addMatch as apiAddMatch, updateFactors as apiUpdateFactors, fetchResults as apiFetchResults, fetchOdds as apiFetchOdds, clearSandbox as apiClearSandbox, refreshSyncStatus, hasAdminPin, setAdminPin, AdminAuthError } from './api.js?v=20260527qa23';
-import { toast, fireConfetti } from './game-fx.js?v=20260527qa23';
+import { getState, setState } from './state.js?v=20260531qa24';
+import { setMatchResult, addMatch as apiAddMatch, updateFactors as apiUpdateFactors, fetchResults as apiFetchResults, fetchOdds as apiFetchOdds, clearSandbox as apiClearSandbox, refreshSyncStatus, hasAdminPin, setAdminPin, AdminAuthError } from './api.js?v=20260531qa24';
+import { toast, fireConfetti } from './game-fx.js?v=20260531qa24';
 
 // ── qa23: PIN gate de Gestión ──────────────────────────────────────
 function promptAdminPin(reason) {
