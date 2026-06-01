@@ -2,11 +2,11 @@
 // Fixtures view — todos los partidos por torneo/jornada, con picks de
 // los 4 jugadores tipo ticket de cromo.
 // ════════════════════════════════════════════════════════════════════
-import { getState, setState, hasRes, hasPick, isFut, hoursUntil, mDate, TODAY } from './state.js?v=20260531qa24';
-import { CONFIG } from './config.js?v=20260531qa24';
-import { attachCountdown, toast } from './game-fx.js?v=20260531qa24';
-import { updateFactors as apiUpdateFactors } from './api.js?v=20260531qa24';
-import { teamShieldHTML } from './team-logos.js?v=20260531qa24';
+import { getState, setState, hasRes, hasPick, isFut, hoursUntil, mDate, TODAY } from './state.js?v=20260531qa25';
+import { CONFIG } from './config.js?v=20260531qa25';
+import { attachCountdown, toast } from './game-fx.js?v=20260531qa25';
+import { updateFactors as apiUpdateFactors } from './api.js?v=20260531qa25';
+import { teamShieldHTML } from './team-logos.js?v=20260531qa25';
 
 // Un partido "tiene cuotas" sólo si Fac L, E y V están cargados y son > 0.
 function hasFactors(m) {

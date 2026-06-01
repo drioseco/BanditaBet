@@ -1,17 +1,17 @@
 // ════════════════════════════════════════════════════════════════════
 // Entry point del frontend — nav, bootstrap, re-render.
 // ════════════════════════════════════════════════════════════════════
-import { CONFIG } from './config.js?v=20260531qa24';
-import { getState, setState, subscribe } from './state.js?v=20260531qa24';
-import { bootstrapState, refreshSyncStatus } from './api.js?v=20260531qa24';
-import { getActivePlayer, setActivePlayer } from './auth.js?v=20260531qa24';
-import { renderHome }     from './render-home.js?v=20260531qa24';
-import { renderFixtures } from './render-fixtures.js?v=20260531qa24';
-import { renderPicks }    from './render-picks.js?v=20260531qa24';
-import { renderStats }    from './render-stats.js?v=20260531qa24';
-import { renderAdmin }    from './render-admin.js?v=20260531qa24';
-import { toast, renderSyncPill, renderLivePill } from './game-fx.js?v=20260531qa24';
-import { loadTeamLogos } from './team-logos.js?v=20260531qa24';
+import { CONFIG } from './config.js?v=20260531qa25';
+import { getState, setState, subscribe } from './state.js?v=20260531qa25';
+import { bootstrapState, refreshSyncStatus } from './api.js?v=20260531qa25';
+import { getActivePlayer, setActivePlayer } from './auth.js?v=20260531qa25';
+import { renderHome }     from './render-home.js?v=20260531qa25';
+import { renderFixtures } from './render-fixtures.js?v=20260531qa25';
+import { renderPicks }    from './render-picks.js?v=20260531qa25';
+import { renderStats }    from './render-stats.js?v=20260531qa25';
+import { renderAdmin }    from './render-admin.js?v=20260531qa25';
+import { toast, renderSyncPill, renderLivePill } from './game-fx.js?v=20260531qa25';
+import { loadTeamLogos } from './team-logos.js?v=20260531qa25';
 
 const VIEWS = ['home', 'fixtures', 'picks', 'stats', 'admin'];
 
