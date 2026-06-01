@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bracket Simulator · demo</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 1100px; margin: 24px auto; padding: 0 16px; background: #f4ecd8; }
+  h1 { font-size: 1.5rem; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 20px; }
+  .row button { padding: 6px 12px; cursor: pointer; border: 1.5px solid #1f1a2e; background: #fff; border-radius: 3px; font-weight: 600; }
+  .row button.on { background: #1f1a2e; color: #fff; }
+  /* ejemplo de re-theming opcional: descomentá para tema oscuro
+  .theme-dark .bsim { --bsim-accent:#22c55e; --bsim-ink:#e5e7eb; --bsim-bg:#111827; --bsim-line:rgba(255,255,255,.15); }
+  */
+  #out { font-family: ui-monospace, monospace; font-size: .7rem; opacity: .6; margin-top: 16px; }
+</style>
+</head>
+<body>
+  <h1>⚽ Bracket Simulator — demo</h1>
+  <div class="row">
+    <button class="on" data-comp="liberta">Datos: Libertadores (mock)</button>
+    <button data-comp="sudamer">Datos: Sudamericana (mock)</button>
+    <button data-comp="entrants">Datos: 8 equipos directos</button>
+  </div>
+
+  <div id="app"></div>
+  <div id="out">Campeón: —</div>
+
+<script type="module">
+import { createBracketSimulator } from './bracket-simulator.js';
+
+// ── Datos de ejemplo (mismo shape que devuelve cualquier API de tablas) ──
+const SAMPLE = {
+  liberta: { groups: makeGroups('Flamengo,Estudiantes,Ind. Medellín,Cusco|Coquimbo,D. Tolima,Nacional,Universitario|São Paulo,Santos,Cerro,Bolívar|Cruzeiro,LDU Quito,Peñarol,Talleres|Corinthians,Racing,Caracas,Sporting Cristal|Palmeiras,River,Junior,Colo Colo|Ind. del Valle,Botafogo,Olimpia,Fortaleza|Atlético-MG,Grêmio,Libertad,Nacional URU') },
+  sudamer:  { groups: makeGroups('Macará,Defensa,Lanús,Banfield|Atlético-MG,Cienciano,Fluminense,Always|Botafogo,Guaraní,Mushuc,Boston River|San Lorenzo,Danubio,Cuiabá,Huracán|Independiente,Once Caldas,Bahía,Coquimbo|U. Católica EC,Garcilaso,Vasco,Lara|Santa Fe,Mineros,Cienciano,Goiás|Racing,Bragantino,Melgar,Corinthians') },
+  entrants: { entrants: [
+    { team: 'Brasil', seed: '1' }, { team: 'Argentina', seed: '2' },
+    { team: 'Francia', seed: '3' }, { team: 'España', seed: '4' },
+    { team: 'Inglaterra', seed: '5' }, { team: 'Alemania', seed: '6' },
+    { team: 'Portugal', seed: '7' }, { team: 'Países Bajos', seed: '8' },
+  ] },
+};
+
+function makeGroups(spec) {
+  return spec.split('|').map((g, i) => ({
+    name: 'Group ' + 'ABCDEFGH'[i],
+    table: g.split(',').map(t => ({ team: t.trim() })),
+  }));
+}
+
+let sim;
+function mount(comp) {
+  sim = createBracketSimulator(document.getElementById('app'), {
+    ...SAMPLE[comp],
+    title: 'Simulador de eliminatorias',
+    note: '🔮 Demo. Tocá un equipo para hacerlo avanzar. (Cuadro proyectado desde los grupos.)',
+    onChampion: (c) => { document.getElementById('out').textContent = 'Campeón: ' + (c ? c.team : '—'); },
+  });
+}
+
+document.querySelectorAll('.row button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.row button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    mount(b.dataset.comp);
+  };
+});
+
+mount('liberta');
+</script>
+</body>
+</html>
