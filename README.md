@@ -3,7 +3,7 @@
 Webapp del prode/pollagol entre amigos. Liga chilena + ligas extranjeras + selecciones.
 4 jugadores: **Dari, Kmi, Blopa, Pela**. 15° aniversario.
 
-**▶ En vivo:** https://banditabet-kelpie-a4cd33.netlify.app/
+**▶ En vivo:** https://bandita-bet.vercel.app/
 
 ---
 
@@ -126,17 +126,19 @@ o con la extensión "Live Server" de VS Code.
 
 ### 4. Publicar para tus amigos
 
-La forma más simple, cero infraestructura, gratis:
+**▶ En vivo en Vercel** (conectado al repo GitHub, auto-deploya en cada push):
+- URL: https://bandita-bet.vercel.app/
 
-**Netlify Drop** (recomendado para empezar):
-1. Ir a [app.netlify.com/drop](https://app.netlify.com/drop).
-2. Arrastrar la carpeta `web/` ahí.
-3. Te da una URL del tipo `https://bandita-bet.netlify.app` que podés compartir.
+Si necesitás deployar en otro lado:
 
-**GitHub Pages** (si ya usás GitHub):
-1. Crear repo, push del proyecto.
-2. Settings → Pages → Source: branch `main`, folder `/web`.
-3. URL `https://<user>.github.io/<repo>/`.
+**Vercel** (recomendado — conectás el repo GitHub y se actualiza solo):
+1. Ir a [vercel.com](https://vercel.com), importar el repo.
+2. Root directory: `web/`.
+3. Cada `git push` publica automáticamente.
+
+**GitHub Pages** (alternativa):
+1. Settings → Pages → Source: branch `main`, folder `/web`.
+2. URL `https://<user>.github.io/<repo>/`.
 
 **Cloudflare Pages** / **Vercel**: también gratis, conectás el repo y se redeploya solo.
 
