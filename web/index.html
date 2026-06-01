@@ -41,6 +41,7 @@
     <button class="nb" onclick="bbGoTo('fixtures', this)">Partidos</button>
     <button class="nb" onclick="bbGoTo('picks', this)">Picks</button>
     <button class="nb" onclick="bbGoTo('stats', this)">Stats</button>
+    <button class="nb" onclick="bbGoTo('hub', this)">Hub ⚽</button>
     <button class="nb" onclick="bbGoTo('admin', this)">Gestión</button>
   </nav>
   <div class="hdr-right">
@@ -314,6 +315,25 @@
   </div>
 </div>
 
+<!-- ═══ HUB DE FÚTBOL (piloto) ═══════════════════════ -->
+<div id="s-hub" class="hidden">
+  <div class="hub-head">
+    <h2 class="hub-title">Hub de Fútbol <span class="hub-pill-pilot">PILOTO</span></h2>
+    <p class="hub-sub">Datos oficiales en vivo · Liga Chile, Libertadores y Sudamericana. Función en pruebas — puede tener ajustes.</p>
+  </div>
+
+  <div class="hub-toolbar">
+    <div class="hub-comps" id="hub-comps">
+      <button class="hub-comp on" data-comp="liga">Liga Chile</button>
+      <button class="hub-comp" data-comp="liberta">Libertadores</button>
+      <button class="hub-comp" data-comp="sudamer">Sudamericana</button>
+    </div>
+    <button class="hub-refresh" id="hub-refresh" title="Actualizar datos">↻</button>
+  </div>
+
+  <div id="hub-content"><div class="hub-loading">Cargando tabla…</div></div>
+</div>
+
 </div><!-- /main -->
 
 <div class="toast" id="toast"></div>
@@ -343,10 +363,10 @@
 </script>
 
 <!-- BB Logo (React + Babel) -->
-<script type="text/babel" src="./js/logo.jsx?v=20260531qa25"></script>
+<script type="text/babel" src="./js/logo.jsx?v=20260531qa26"></script>
 
 <!-- App (ES modules) -->
-<script type="module" src="./js/app.js?v=20260531qa25"></script>
+<script type="module" src="./js/app.js?v=20260531qa26"></script>
 
 </body>
 </html>

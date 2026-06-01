@@ -3,8 +3,8 @@
 // Todos los POST son form-encoded para esquivar el CORS preflight.
 // Si CONFIG.API_URL no está configurada, fallback a /data/seed.json.
 // ════════════════════════════════════════════════════════════════════
-import { CONFIG, API } from './config.js?v=20260531qa25';
-import { getState, setState } from './state.js?v=20260531qa25';
+import { CONFIG, API } from './config.js?v=20260531qa26';
+import { getState, setState } from './state.js?v=20260531qa26';
 
 // ── Admin PIN (qa23) ────────────────────────────────────────────────
 // Vive en sessionStorage → persiste hasta cerrar la pestaña.
@@ -153,4 +153,9 @@ export async function clearSandbox() {
 // qa21 — Propuestas de cuotas desde API externa
 export async function fetchOdds({ from, to } = {}) {
   return postAdmin('fetchOdds', { from: from || '', to: to || '' });
+}
+
+// qa26 — Hub de fútbol (datos oficiales ESPN, solo lectura)
+export async function getHub(kind, comp, { fresh } = {}) {
+  return get('hub', { kind, comp, ...(fresh ? { fresh: '1' } : {}) });
 }
