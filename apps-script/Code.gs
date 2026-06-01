@@ -1159,7 +1159,8 @@ function hub_(p) {
 
   var fresh    = (p.fresh === '1' || p.fresh === 'true' || p.fresh === true);
   var hasRange = (kind === 'fixtures' && p.from && p.to);
-  var cacheKey = 'hub:' + kind + ':' + compKey + (hasRange ? (':' + p.from + ':' + p.to) : '');
+  var seasonKey = (kind === 'standings' && p.season && /^\d{4}$/.test(p.season)) ? (':' + p.season) : '';
+  var cacheKey = 'hub:' + kind + ':' + compKey + (hasRange ? (':' + p.from + ':' + p.to) : '') + seasonKey;
   var cache    = CacheService.getScriptCache();
 
   if (!fresh) {
@@ -1167,9 +1168,11 @@ function hub_(p) {
     if (hit) { try { var o = JSON.parse(hit); o.cached = true; return o; } catch (_) {} }
   }
 
+  var season = (p.season && /^\d{4}$/.test(p.season)) ? p.season : String(new Date().getFullYear());
+
   var payload;
   try {
-    if      (kind === 'standings') payload = hubStandings_(comp.slug);
+    if      (kind === 'standings') payload = hubStandings_(comp.slug, season);
     else if (kind === 'fixtures')  payload = hubFixtures_(comp.slug, hasRange ? p.from : null, hasRange ? p.to : null);
     else if (kind === 'bracket')   payload = hubBracket_(comp.slug);
     else                           payload = hubScorers_(comp.slug);
@@ -1189,8 +1192,16 @@ function hub_(p) {
 
 // Tabla de posiciones. Soporta liga (1 tabla) y copas (grupos múltiples).
 // Siempre devuelve { groups: [ { name, table:[Standing...] } ] } para uniformar.
-function hubStandings_(slug) {
-  var data = espnGet_('/' + slug + '/standings', {});
+// OJO: el endpoint de standings vive en apis/v2 (no apis/site/v2 como el
+// scoreboard) y requiere ?season=YYYY. Por eso usa su propio fetch.
+function hubStandings_(slug, season) {
+  var url = 'https://site.api.espn.com/apis/v2/sports/soccer/' + slug +
+            '/standings?season=' + encodeURIComponent(season || new Date().getFullYear());
+  var res = UrlFetchApp.fetch(url, { method: 'get', muteHttpExceptions: true });
+  if (res.getResponseCode() < 200 || res.getResponseCode() >= 300) {
+    throw new Error('standings_http_' + res.getResponseCode());
+  }
+  var data = JSON.parse(res.getContentText());
   var groups = [];
   function pushGroup(name, st) {
     if (!st || !st.entries || !st.entries.length) return;
