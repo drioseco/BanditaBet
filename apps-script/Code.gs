@@ -68,6 +68,18 @@ var ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
 var ESPN_LEAGUES = {
   liga: { slug: 'chi.1' }   // Chile Primera División
 };
+
+// ── HUB de fútbol (qa26) ─────────────────────────────────────────────
+// Capa de datos oficiales (solo lectura) sobre la API de ESPN. Independiente
+// de la polla. El frontend consume JSON normalizado vía ?action=hub; el
+// backend cachea con TTL (CacheService) para no golpear ESPN en cada visita.
+var HUB_COMPS = {
+  liga:    { slug: 'chi.1',                 label: 'Liga Chile',   hasGroups: false, hasBracket: false },
+  liberta: { slug: 'conmebol.libertadores', label: 'Libertadores', hasGroups: true,  hasBracket: true  },
+  sudamer: { slug: 'conmebol.sudamericana', label: 'Sudamericana', hasGroups: true,  hasBracket: true  }
+};
+// TTL de caché por tipo de dato (segundos). Tope de CacheService = 21600 (6h).
+var HUB_TTL = { standings: 21600, fixtures: 3600, bracket: 3600, scorers: 21600 };
 var SANDBOX_SHEET_NAME = '_API_test';
 var SANDBOX_HEADERS = [
   'fecha_partido','home_team_api','away_team_api','home_score','away_score',
@@ -158,6 +170,7 @@ function handle(action, p) {
       case 'fetchResults':  return fetchResults_(p);
       case 'fetchOdds':     return fetchOdds_(p);
       case 'clearSandbox':  return clearSandbox_();
+      case 'hub':           return hub_(p);
       default:             return { ok: false, error: 'unknown_action', got: action };
     }
   } catch (err) {
@@ -1126,8 +1139,164 @@ function addDays_(d, n) {
   return x;
 }
 
+// ════════════════════════════════════════════════════════════════════
+// HUB de fútbol (qa26) — datos oficiales de ESPN, normalizados + cacheados.
+// Solo lectura. NO toca la polla. Acción pública: ?action=hub
+//   ?action=hub&kind=standings&comp=liga
+//   ?action=hub&kind=fixtures&comp=liberta[&from=YYYY-MM-DD&to=YYYY-MM-DD]
+//   ?action=hub&kind=bracket&comp=sudamer
+//   ?action=hub&kind=scorers&comp=liga
+//   &fresh=1  → saltea la caché (forzar refetch)
+// ════════════════════════════════════════════════════════════════════
+function hub_(p) {
+  var kind    = (p.kind || 'standings').toString();
+  var compKey = (p.comp || 'liga').toString();
+  var comp    = HUB_COMPS[compKey];
+  if (!comp) return { ok: false, error: 'unknown_comp', got: compKey, allowed: Object.keys(HUB_COMPS) };
+  var allowedKinds = ['standings', 'fixtures', 'bracket', 'scorers'];
+  if (allowedKinds.indexOf(kind) === -1)
+    return { ok: false, error: 'unknown_kind', got: kind, allowed: allowedKinds };
+
+  var fresh    = (p.fresh === '1' || p.fresh === 'true' || p.fresh === true);
+  var hasRange = (kind === 'fixtures' && p.from && p.to);
+  var cacheKey = 'hub:' + kind + ':' + compKey + (hasRange ? (':' + p.from + ':' + p.to) : '');
+  var cache    = CacheService.getScriptCache();
+
+  if (!fresh) {
+    var hit = cache.get(cacheKey);
+    if (hit) { try { var o = JSON.parse(hit); o.cached = true; return o; } catch (_) {} }
+  }
+
+  var payload;
+  try {
+    if      (kind === 'standings') payload = hubStandings_(comp.slug);
+    else if (kind === 'fixtures')  payload = hubFixtures_(comp.slug, hasRange ? p.from : null, hasRange ? p.to : null);
+    else if (kind === 'bracket')   payload = hubBracket_(comp.slug);
+    else                           payload = hubScorers_(comp.slug);
+  } catch (err) {
+    return { ok: false, error: 'espn_fetch_failed', detail: err.message, comp: compKey, kind: kind };
+  }
+
+  var result = { ok: true, comp: compKey, compLabel: comp.label, kind: kind,
+                 cached: false, fetched_at: new Date().toISOString() };
+  for (var k in payload) result[k] = payload[k];
+
+  try { cache.put(cacheKey, JSON.stringify(result), HUB_TTL[kind] || 3600); }
+  catch (_) { /* item demasiado grande o error de caché → igual devolvemos */ }
+
+  return result;
+}
+
+// Tabla de posiciones. Soporta liga (1 tabla) y copas (grupos múltiples).
+// Siempre devuelve { groups: [ { name, table:[Standing...] } ] } para uniformar.
+function hubStandings_(slug) {
+  var data = espnGet_('/' + slug + '/standings', {});
+  var groups = [];
+  function pushGroup(name, st) {
+    if (!st || !st.entries || !st.entries.length) return;
+    var table = st.entries.map(hubNormEntry_);
+    table.sort(function (a, b) { return (b.pts - a.pts) || (b.dg - a.dg) || (b.gf - a.gf); });
+    table.forEach(function (r, i) { if (!r.pos) r.pos = i + 1; });
+    groups.push({ name: name || null, table: table });
+  }
+  if (data.children && data.children.length) {
+    data.children.forEach(function (c) { pushGroup(c.name || c.abbreviation, c.standings); });
+  } else if (data.standings) {
+    pushGroup(null, data.standings);
+  }
+  return { groups: groups };
+}
+
+// Una fila de la tabla. Lee los stats de ESPN por nombre (varían por liga).
+function hubNormEntry_(entry) {
+  var t = entry.team || {};
+  var s = entry.stats || [];
+  function g(n) { return espnStatVal_(s, n); }
+  return {
+    pos:      g('rank'),
+    team:     resolveTeamName_(t.displayName || t.shortDisplayName || t.name || ''),
+    teamRaw:  t.displayName || t.name || '',
+    crest:    (t.logos && t.logos[0] && t.logos[0].href) || t.logo || null,
+    pj:  g('gamesPlayed'), g: g('wins'), e: g('ties'), p: g('losses'),
+    gf:  g('pointsFor'), gc: g('pointsAgainst'),
+    dg:  g('pointDifferential'), pts: g('points')
+  };
+}
+
+function espnStatVal_(stats, name) {
+  for (var i = 0; i < stats.length; i++) {
+    var st = stats[i];
+    if (st && (st.name === name || st.type === name)) {
+      if (st.value != null && !isNaN(st.value)) return Number(st.value);
+      var n = parseFloat(st.displayValue);
+      return isNaN(n) ? null : n;
+    }
+  }
+  return null;
+}
+
+// Fixtures/calendario. Sin rango → scoreboard actual (jornada vigente).
+// Con from/to → pagina mes a mes (reusa espnFetchRange_).
+function hubFixtures_(slug, fromYMD, toYMD) {
+  var events;
+  if (fromYMD && toYMD) {
+    events = espnFetchRange_(slug, fromYMD, toYMD);
+  } else {
+    var resp = espnGet_('/' + slug + '/scoreboard', {});
+    events = (resp && resp.events) || [];
+  }
+  var fixtures = events.map(hubNormEvent_).filter(function (x) { return x; });
+  fixtures.sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
+  return { fixtures: fixtures };
+}
+
+function hubNormEvent_(ev) {
+  var comp = (ev.competitions && ev.competitions[0]) || {};
+  var cs = comp.competitors || [];
+  var home = null, away = null;
+  cs.forEach(function (c) { if (c.homeAway === 'home') home = c; else if (c.homeAway === 'away') away = c; });
+  if (!home || !away) return null;
+  function nm(c) { var t = c.team || {}; return resolveTeamName_(t.displayName || t.shortDisplayName || t.name || ''); }
+  function cr(c) { var t = c.team || {}; return (t.logos && t.logos[0] && t.logos[0].href) || t.logo || null; }
+  function sc(c) { return (c.score != null && c.score !== '') ? Number(c.score) : null; }
+  var stType = ((comp.status || ev.status || {}).type) || {};
+  var state  = stType.state || 'pre';
+  var status = state === 'post' ? 'finished' : state === 'in' ? 'live' : 'scheduled';
+  var round  = (comp.notes && comp.notes[0] && comp.notes[0].headline) || null;
+  return {
+    id: ev.id, date: ev.date, round: round,
+    home: nm(home), away: nm(away),
+    homeCrest: cr(home), awayCrest: cr(away),
+    homeScore: sc(home), awayScore: sc(away),
+    status: status,
+    statusDetail: stType.shortDetail || stType.description || ''
+  };
+}
+
+// Bracket de eliminación. ESPN no expone un bracket estructurado en site.api,
+// así que lo derivamos agrupando fixtures por ronda. Marcado partial:true —
+// se refina en F3 una vez validado qué trae ESPN para cada copa.
+function hubBracket_(slug) {
+  var fx = hubFixtures_(slug).fixtures;
+  var byRound = {};
+  fx.forEach(function (f) { var r = f.round || 'Sin ronda'; (byRound[r] = byRound[r] || []).push(f); });
+  var rounds = Object.keys(byRound).map(function (r) { return { round: r, ties: byRound[r] }; });
+  return { partial: true,
+           note: 'Derivado de fixtures por ronda; ESPN no expone bracket estructurado. Refinar en F3.',
+           rounds: rounds };
+}
+
+// Goleadores. Placeholder honesto: la fuente actual no los expone de forma
+// confiable. Se implementa en F4 (probablemente vía core API / leaders).
+function hubScorers_(slug) {
+  return { scorers: [], note: 'Goleadores aún no disponibles en esta fuente (pendiente F4).' };
+}
+
 // ── Test desde el editor de Apps Script (clic "Run" en alguna) ─────
 function test_health()   { log_(JSON.stringify(health_(),   null, 2)); }
 function test_state()    { log_(JSON.stringify(getState_(), null, 2).slice(0, 4000)); }
 function test_status()   { log_(JSON.stringify(syncStatus_(),null, 2)); }
+function test_hub_liga()    { log_(JSON.stringify(hub_({ kind:'standings', comp:'liga',    fresh:'1' }), null, 2).slice(0, 4000)); }
+function test_hub_liberta() { log_(JSON.stringify(hub_({ kind:'standings', comp:'liberta', fresh:'1' }), null, 2).slice(0, 4000)); }
+function test_hub_fixtures(){ log_(JSON.stringify(hub_({ kind:'fixtures',  comp:'sudamer', fresh:'1' }), null, 2).slice(0, 4000)); }
 function test_fetch_results() { log_(JSON.stringify(fetchResults_({}), null, 2)); }
