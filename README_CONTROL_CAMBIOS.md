@@ -2222,3 +2222,77 @@ Verificación post-cleanup:
 - `apps-script/Code.gs` — agregada `test_clean_future_placeholders`
 - Apps Script Versión 9 sigue activa — la limpieza corrió desde el editor
   (no necesita deploy, no es un endpoint público)
+
+---
+
+# qa26–qa28 · Hub de fútbol + simulador + fix crítico de Experto (jun 2026)
+
+Contexto: se sumó un **Hub de fútbol** (datos oficiales en vivo) y un
+**simulador de eliminatorias**, y en el camino un deploy rompió la suma de
+Experto en la tabla. Todo reparado, verificado y commiteado.
+
+## qa26 · Hub de fútbol (F0 backend + F1 frontend)
+
+Pestaña nueva **Hub ⚽** con datos oficiales de ESPN, **independiente de la
+polla** (solo lectura, no toca el Sheet).
+
+**Backend (`Code.gs`):** acción pública `?action=hub`.
+- `kind=standings|fixtures|bracket|scorers`, `comp=liga|liberta|sudamer`, `&fresh=1`.
+- Cacheado con `CacheService` (TTL por tipo). Normaliza ESPN a JSON limpio.
+- **Hallazgo clave:** standings de ESPN viven en `apis/v2/sports/soccer/{slug}/standings?season=YYYY`
+  (NO en `apis/site/v2`, que devolvía `{}`). Scoreboard sí usa `apis/site/v2`.
+- Reusa `espnGet_`, `espnFetchRange_`, `TEAM_ALIASES` ya existentes. Trae escudos.
+
+**Frontend:** `web/js/render-hub.js` + sección `#s-hub` + `getHub()` en `api.js`.
+Tabla de posiciones con escudos (1 tabla para liga, grupos para copas). Badge
+**PILOTO** en el título. Cache-bust `qa26`.
+
+## qa27 · Simulador de eliminatorias (F3/F5)
+
+ESPN aún no tiene el cuadro 2026 (sorteo en julio). Se proyecta el bracket
+desde los **2 mejores de cada grupo** → octavos→final, interactivo (tocás el
+ganador y avanza). 100% client-side, sin backend nuevo.
+- Toggle Tabla/Eliminatorias (solo copas). Cruce anti-rematch (1A-2B, 1B-2A…).
+- Botones Autocompletar (gana mejor sembrado) + Reiniciar + columna Campeón.
+
+**Herramienta portátil:** `tools/bracket-simulator/` — extraído como módulo
+standalone (vanilla JS, sin deps, CSS autoinyectado, theming por `--bsim-*`).
+Acepta grupos o equipos directos. Incluye `demo.html` + `README.md`.
+
+## qa28 · 🔥 FIX CRÍTICO — Experto no sumaba en la tabla
+
+**Síntoma:** tras deployar el Hub, el leaderboard mostró puntos bajos (solo
+Liga). Kmi 140 en vez de 340, etc.
+
+**Causa raíz:** la hoja `Partidos Experto` tiene una **columna C (idx 2) vacía**.
+`parseExpertoRow` y `colIndexes_('experto')` leían sin contarla → todo corrido
+-1 desde la fecha: `home_team` caía en la fecha, los goles en otra columna, y
+`result_factor` quedaba vacío → `isPlayed_` marcaba TODOS los partidos de
+Experto como `scheduled` → el leaderboard (que filtra por `isPlayed_`) los
+ignoraba.
+
+**Por qué apareció ahora:** el arreglo correcto vivía SOLO en el editor de Apps
+Script (parcheado a mano en algún momento, nunca commiteado). El repo tenía los
+índices viejos. Al deployar el Hub desde el repo, se pisó el parche.
+
+**Fix:** corregir `parseExpertoRow` + `colIndexes_('experto')` → de `LOCAL`
+(col 4) en adelante, idéntico a Liga (round col 1, fecha col 3). Ver mapa de
+columnas en `CLAUDE.md`. **Commiteado al repo** (antes solo vivía en el editor).
+
+**Verificación (en vivo):** leaderboard = TABLA POSICIONES de la planilla →
+Blopa 377.27 · Dari 374.12 · Kmi 340.77 · Pela 186.78. Experto: 218 partidos,
+146 jugados, con nombres y marcadores correctos.
+
+**Nota de transferencia:** inyectar el Code.gs por consola con base64 se
+corrompía (un carácter se mangleaba determinísticamente en el canal). Se pasó a
+**hex + verificación de SHA-256** por chunk antes de descomprimir. Método
+confiable documentado en `CLAUDE.md`.
+
+## Estado final verificado
+
+- ✅ Tabla/leaderboard correcto (Liga + Experto).
+- ✅ Picks, Stats, Fixtures, Crónica: sin errores de consola.
+- ✅ Hub: standings + fixtures + simulador, vivos.
+- ✅ PIN admin protege (pero `ADMIN_PIN` pendiente de setear en Script Properties).
+- ✅ Repo == producción (Code.gs commiteado). CLAUDE.md actualizado con mapa de
+  columnas + protocolo de deploy + lecciones.
