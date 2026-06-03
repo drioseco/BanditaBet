@@ -3,8 +3,8 @@
 // sparkline, calendario heatmap, H2H, gemelos/rivales, tendencias L/E/V,
 // marcadores favoritos, liga vs experto, premios raros, WO.
 // ════════════════════════════════════════════════════════════════════
-import { getState, hasRes } from './state.js?v=20260603qa30';
-import { teamShieldHTML } from './team-logos.js?v=20260603qa30';
+import { getState, hasRes } from './state.js?v=20260603qa32';
+import { teamShieldHTML } from './team-logos.js?v=20260603qa32';
 
 // ╔════════════════════════════════════════════════════════════════╗
 // ║  DATA — un solo paso por matches/picks; el resto consume        ║

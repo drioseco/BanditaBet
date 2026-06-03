@@ -284,6 +284,36 @@ body {
 .ft:hover { border-color: var(--bb-ink); color: var(--bb-ink); background: var(--bb-cream); }
 .ft.on { background: var(--bb-ink); border-color: var(--bb-ink); color: var(--bb-cream); box-shadow: none; }
 
+/* ═══ MINI-TABLA por competencia en Partidos (qa32) ════ */
+.stdm-card {
+  background: var(--bb-paper); border: var(--bb-border-sm); border-color: rgba(31,26,46,.18);
+  border-radius: 4px; box-shadow: var(--bb-shadow-xs);
+  margin-bottom: 1rem; overflow: hidden;
+}
+.stdm-head {
+  font-family: var(--bb-mono); font-size: .55rem; font-weight: 700;
+  letter-spacing: .8px; text-transform: uppercase; color: rgba(31,26,46,.45);
+  padding: 7px 12px; border-bottom: 1px solid rgba(31,26,46,.1);
+}
+.stdm-rows { display: flex; flex-wrap: wrap; }
+.stdm-row {
+  display: flex; align-items: center; gap: .45rem;
+  flex: 1 1 50%; min-width: 160px; box-sizing: border-box;
+  padding: 7px 12px; border-bottom: 1px solid rgba(31,26,46,.06);
+}
+.stdm-pos {
+  font-family: var(--bb-display); font-style: italic; font-size: .8rem;
+  width: 16px; text-align: center; color: rgba(31,26,46,.55);
+}
+.stdm-ava {
+  width: 22px; height: 22px; border-radius: 50%; border: 2px solid;
+  display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
+  font-family: var(--bb-display); font-style: italic; font-size: .7rem;
+}
+.stdm-name { font-family: var(--bb-ui); font-weight: 700; font-size: .78rem; flex: 1 1 auto; }
+.stdm-pts { font-family: var(--bb-display); font-style: italic; font-size: 1rem; }
+.stdm-pts small { font-size: .5rem; margin-left: 1px; opacity: .7; }
+
 /* ═══ FIXTURE CARDS ════════════════════════════════════ */
 .jornada-hdr {
   font-family: var(--bb-display); font-style: italic; font-size: .85rem;

@@ -2,11 +2,12 @@
 // Fixtures view — todos los partidos por torneo/jornada, con picks de
 // los 4 jugadores tipo ticket de cromo.
 // ════════════════════════════════════════════════════════════════════
-import { getState, setState, hasRes, hasPick, isFut, hoursUntil, mDate, TODAY } from './state.js?v=20260603qa30';
-import { CONFIG } from './config.js?v=20260603qa30';
-import { attachCountdown, toast } from './game-fx.js?v=20260603qa30';
-import { updateFactors as apiUpdateFactors } from './api.js?v=20260603qa30';
-import { teamShieldHTML } from './team-logos.js?v=20260603qa30';
+import { getState, setState, hasRes, hasPick, isFut, hoursUntil, mDate, TODAY } from './state.js?v=20260603qa32';
+import { CONFIG } from './config.js?v=20260603qa32';
+import { attachCountdown, toast } from './game-fx.js?v=20260603qa32';
+import { updateFactors as apiUpdateFactors } from './api.js?v=20260603qa32';
+import { teamShieldHTML } from './team-logos.js?v=20260603qa32';
+import { computeStandings, scopeMatches } from './render-home.js?v=20260603qa32';
 
 // Un partido "tiene cuotas" sólo si Fac L, E y V están cargados y son > 0.
 function hasFactors(m) {
@@ -88,6 +89,9 @@ export function renderFixtures() {
   const data = matches.filter(m => m.competition_id === currentSheet);
   const playerByName = Object.fromEntries(players.map(p => [p.name, p]));
 
+  // Mini-tabla de la competencia seleccionada (qa32).
+  renderFixturesStandings(currentSheet);
+
   // Resolver "next" → la próxima jornada (sticky para el primer render
   // y cuando se cambia de competencia).
   if (currentRound === 'all' || currentRound == null) {
@@ -168,6 +172,31 @@ function makeFilter(label, on, onClick) {
   b.textContent = label;
   b.onclick = onClick;
   return b;
+}
+
+// Mini-tabla compacta del ranking de la competencia actual (qa32).
+function renderFixturesStandings(sheet) {
+  const box = document.getElementById('fixtures-standings');
+  if (!box) return;
+  const { players } = getState();
+  const standings = computeStandings(scopeMatches(sheet)); // 'liga' | 'experto'
+  const playerByName = Object.fromEntries(players.map(p => [p.name, p]));
+  const label = sheet === 'experto' ? 'Partidos Experto' : 'Liga de Primera';
+  const rows = standings.map((s, i) => {
+    const c = playerByName[s.name]?.color || '#1F1A2E';
+    return `
+      <div class="stdm-row">
+        <span class="stdm-pos">${i === 0 ? '★' : i + 1}</span>
+        <span class="stdm-ava" style="border-color:${c};color:${c}">${s.name[0]}</span>
+        <span class="stdm-name">${s.name}</span>
+        <span class="stdm-pts" style="color:${c}">${s.total.toFixed(0)}<small>pts</small></span>
+      </div>`;
+  }).join('');
+  box.innerHTML = `
+    <div class="stdm-card">
+      <div class="stdm-head">Tabla · ${label}</div>
+      <div class="stdm-rows">${rows}</div>
+    </div>`;
 }
 
 function buildFixtureCard(m, playerByName) {

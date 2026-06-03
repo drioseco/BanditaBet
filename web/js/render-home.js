@@ -2,9 +2,9 @@
 // Home view — leaderboard, title race, narrative feed, próximos picks,
 // últimos resultados.
 // ════════════════════════════════════════════════════════════════════
-import { getState, setState, hasRes, hasPick, isFut, h2r, mDate, TODAY, hoursUntil, fmtPts } from './state.js?v=20260603qa30';
-import { CONFIG } from './config.js?v=20260603qa30';
-import { renderBadge, computeBadgesFor, computeXPFor, LEVEL_DEFS, computeMissionsFor } from './game-fx.js?v=20260603qa30';
+import { getState, setState, hasRes, hasPick, isFut, h2r, mDate, TODAY, hoursUntil, fmtPts } from './state.js?v=20260603qa32';
+import { CONFIG } from './config.js?v=20260603qa32';
+import { renderBadge, computeBadgesFor, computeXPFor, LEVEL_DEFS, computeMissionsFor } from './game-fx.js?v=20260603qa32';
 
 const PLAYERS = CONFIG.PLAYERS;
 
@@ -33,12 +33,13 @@ function playerFigureSvg(color, name) {
   </svg>`;
 }
 
-function playerStats(playerName) {
+function playerStats(playerName, matchList) {
   const { matches, picks, players } = getState();
+  const list = matchList || matches;
   const pl = players.find(p => p.name === playerName);
   if (!pl) return { total: 0, plenos: 0, aciertos: 0, wo: 0, pj: 0 };
   let total = 0, plenos = 0, aciertos = 0, wo = 0, pj = 0;
-  for (const m of matches) {
+  for (const m of list) {
     if (!hasRes(m)) continue;
     const pk = picks.find(x => x.match_id === m.id && x.player_id === pl.id);
     if (!pk || pk.home_score == null) { wo++; continue; }
@@ -48,6 +49,55 @@ function playerStats(playerName) {
     else if (pk.status === 'Ac') aciertos++;
   }
   return { total: +total.toFixed(2), plenos, aciertos, wo, pj };
+}
+
+// ── Scope helpers (qa32) ──────────────────────────────────────────────
+// Devuelve el subconjunto de partidos para un scope dado:
+//   'general'        → todos
+//   'liga'           → competencia liga
+//   'exp:<torneo>'   → experto + ese round.name (torneo)
+//   'experto'        → todos los de experto (usado en Partidos)
+export function scopeMatches(scope) {
+  const { matches, rounds } = getState();
+  if (!scope || scope === 'general') return matches;
+  if (scope === 'liga')    return matches.filter(m => m.competition_id === 'liga');
+  if (scope === 'experto') return matches.filter(m => m.competition_id === 'experto');
+  if (scope.startsWith('exp:')) {
+    const torneo = scope.slice(4);
+    return matches.filter(m => {
+      if (m.competition_id !== 'experto') return false;
+      const r = rounds.find(rr => rr.id === m.round_id);
+      return (r && r.name) === torneo;
+    });
+  }
+  return matches;
+}
+
+// Calcula y ordena el ranking sobre un subconjunto de partidos.
+export function computeStandings(matchList) {
+  return PLAYERS.map(name => ({ name, ...playerStats(name, matchList) }))
+    .sort((a, b) => b.total - a.total);
+}
+
+// Torneos de Experto presentes (distintos round.name), ordenados.
+function expertoTorneos() {
+  const { matches, rounds } = getState();
+  const ids = new Set(matches.filter(m => m.competition_id === 'experto').map(m => m.round_id));
+  return rounds
+    .filter(r => r.competition_id === 'experto' && ids.has(r.id))
+    .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+    .map(r => r.name);
+}
+
+const SCOPE_LABEL = {
+  general: 'General',
+  liga:    'Liga de Primera',
+  experto: 'Partidos Experto',
+};
+function scopeLabel(scope) {
+  if (SCOPE_LABEL[scope]) return SCOPE_LABEL[scope];
+  if (scope && scope.startsWith('exp:')) return scope.slice(4);
+  return 'General';
 }
 
 function getForm(playerName, n = 5) {
@@ -907,9 +957,9 @@ function renderPendingPicks() {
 export function renderHome() {
   const root = document.getElementById('s-home');
   if (!root) return;
-  const { players, matches, lastSyncedAt } = getState();
-  const allPlayers = PLAYERS.map(name => ({ name, ...playerStats(name) }))
-    .sort((a, b) => b.total - a.total);
+  const { matches } = getState();
+  // Hero / KPIs: SIEMPRE de temporada completa (vista global).
+  const allPlayers = computeStandings(matches);
 
   const played = matches.filter(hasRes).length;
   const pct = matches.length ? Math.round(played / matches.length * 100) : 0;
@@ -931,52 +981,9 @@ export function renderHome() {
   const pf = document.getElementById('prog-fill');
   if (pf) setTimeout(() => pf.style.width = pct + '%', 100);
 
-  // ── Standings ────────────────────────────────────────────────────
-  const std = document.getElementById('standings');
-  if (std) {
-    std.querySelectorAll('.std-row').forEach(r => r.remove());
-    const wos = allPlayers.map(p => p.wo);
-    const maxWO = Math.max(...wos, 1), minWO = Math.min(...wos), woR = maxWO - minWO || 1;
-    const maxTotal = allPlayers[0]?.total || 1;
-    allPlayers.forEach((s, i) => {
-      const player = players.find(p => p.name === s.name);
-      const c = player?.color || '#1F1A2E';
-      const gap = i > 0 ? (allPlayers[0].total - s.total).toFixed(2) : null;
-      const played = s.plenos + s.aciertos + (s.pj - s.plenos - s.aciertos);
-      const hitPct = s.pj ? Math.round((s.plenos + s.aciertos) / s.pj * 100) : 0;
-      const plenoPct = s.pj ? Math.round(s.plenos / s.pj * 100) : 0;
-      const barW = Math.round(s.total / maxTotal * 100);
-      const row = document.createElement('div');
-      row.className = 'std-row fu';
-      row.style.borderLeftColor = c;
-      if (i === 0) row.style.background = `rgba(${h2r(c)},.04)`;
-      row.innerHTML = `
-        <div class="std-pos ${['p1','p2','p3','p4'][i] || ''}">${i === 0 ? '★' : i + 1}</div>
-        ${player?.avatar_url ? `<img class="std-ava" src="${player.avatar_url}" style="border-color:${c}" onerror="this.style.display='none'">` : `<div class="std-ava" style="border-color:${c};display:flex;align-items:center;justify-content:center;font-family:var(--bb-display);font-style:italic;color:${c}">${s.name[0]}</div>`}
-        <div class="std-info">
-          <div class="std-top">
-            <div class="std-name" style="color:${i === 0 ? c : 'var(--bb-ink)'}">${s.name}</div>
-            <div class="std-pts" style="color:${c}">${s.total.toFixed(0)}<small>PTS</small></div>
-          </div>
-          <div class="std-bar-wrap">
-            <div class="std-bar-fill" style="width:${barW}%;background:${c}"></div>
-            <div class="std-bar-pleno" style="width:${plenoPct}%;background:${c};opacity:.65"></div>
-          </div>
-          <div class="std-meta">
-            <span class="std-meta-stat">${s.plenos}P · ${s.aciertos}Ac${s.wo ? ` · <span style="color:var(--bb-tomate)">${s.wo}WO</span>` : ''}</span>
-            <span class="std-meta-pct">${hitPct}% efectividad</span>
-            ${gap ? `<span class="std-meta-gap">−${gap}</span>` : `<span class="std-meta-lead">★ Puntero</span>`}
-          </div>
-        </div>`;
-      std.appendChild(row);
-    });
-    // Animate bars from 0
-    std.querySelectorAll('.std-bar-fill, .std-bar-pleno').forEach(el => {
-      const w = el.style.width;
-      el.style.width = '0';
-      setTimeout(() => { el.style.width = w; }, 60);
-    });
-  }
+  // ── Clasificación con scope por competencia (qa32) ───────────────
+  renderScopeChips();
+  renderStandings();
 
   // ── Picks pendientes ─────────────────────────────────────────────
   renderPendingPicks();
@@ -984,6 +991,81 @@ export function renderHome() {
   // ── Crónica auto de la última fecha ─────────────────────────────
   renderCronicaAuto();
 
+}
+
+// ── Chips de scope (qa32): General · Liga · <torneos de Experto> ──────
+export function renderScopeChips() {
+  const box = document.getElementById('home-scope-chips');
+  if (!box) return;
+  const scope = getState().homeScope || 'general';
+  const chips = [
+    { scope: 'general', label: 'General' },
+    { scope: 'liga',    label: 'Liga' },
+    ...expertoTorneos().map(t => ({ scope: 'exp:' + t, label: t })),
+  ];
+  box.innerHTML =
+    `<span class="flt-lbl">Competencia:</span>` +
+    chips.map(c =>
+      `<button class="ft${c.scope === scope ? ' on' : ''}" data-scope="${c.scope}">${c.label}</button>`
+    ).join('');
+}
+
+// ── Cuerpo de la tabla de clasificación, recalculado según el scope ──
+export function renderStandings() {
+  const std = document.getElementById('standings');
+  if (!std) return;
+  const { players, homeScope } = getState();
+  const scope = homeScope || 'general';
+  const list = scopeMatches(scope);
+  const allPlayers = computeStandings(list);
+
+  // Caption del scope activo (reusa std-head-r).
+  const capEl = std.querySelector('.std-head-r');
+  if (capEl) {
+    capEl.textContent = scope === 'general'
+      ? 'Barra = puntos relativos al líder'
+      : `Solo ${scopeLabel(scope)}`;
+  }
+
+  std.querySelectorAll('.std-row').forEach(r => r.remove());
+  const maxTotal = allPlayers[0]?.total || 1;
+  allPlayers.forEach((s, i) => {
+    const player = players.find(p => p.name === s.name);
+    const c = player?.color || '#1F1A2E';
+    const gap = i > 0 ? (allPlayers[0].total - s.total).toFixed(2) : null;
+    const hitPct = s.pj ? Math.round((s.plenos + s.aciertos) / s.pj * 100) : 0;
+    const plenoPct = s.pj ? Math.round(s.plenos / s.pj * 100) : 0;
+    const barW = maxTotal ? Math.round(s.total / maxTotal * 100) : 0;
+    const row = document.createElement('div');
+    row.className = 'std-row fu';
+    row.style.borderLeftColor = c;
+    if (i === 0) row.style.background = `rgba(${h2r(c)},.04)`;
+    row.innerHTML = `
+      <div class="std-pos ${['p1','p2','p3','p4'][i] || ''}">${i === 0 ? '★' : i + 1}</div>
+      ${player?.avatar_url ? `<img class="std-ava" src="${player.avatar_url}" style="border-color:${c}" onerror="this.style.display='none'">` : `<div class="std-ava" style="border-color:${c};display:flex;align-items:center;justify-content:center;font-family:var(--bb-display);font-style:italic;color:${c}">${s.name[0]}</div>`}
+      <div class="std-info">
+        <div class="std-top">
+          <div class="std-name" style="color:${i === 0 ? c : 'var(--bb-ink)'}">${s.name}</div>
+          <div class="std-pts" style="color:${c}">${s.total.toFixed(0)}<small>PTS</small></div>
+        </div>
+        <div class="std-bar-wrap">
+          <div class="std-bar-fill" style="width:${barW}%;background:${c}"></div>
+          <div class="std-bar-pleno" style="width:${plenoPct}%;background:${c};opacity:.65"></div>
+        </div>
+        <div class="std-meta">
+          <span class="std-meta-stat">${s.plenos}P · ${s.aciertos}Ac${s.wo ? ` · <span style="color:var(--bb-tomate)">${s.wo}WO</span>` : ''}</span>
+          <span class="std-meta-pct">${hitPct}% efectividad</span>
+          ${gap ? `<span class="std-meta-gap">−${gap}</span>` : `<span class="std-meta-lead">★ Puntero</span>`}
+        </div>
+      </div>`;
+    std.appendChild(row);
+  });
+  // Animate bars from 0
+  std.querySelectorAll('.std-bar-fill, .std-bar-pleno').forEach(el => {
+    const w = el.style.width;
+    el.style.width = '0';
+    setTimeout(() => { el.style.width = w; }, 60);
+  });
 }
 
 function addNarrative(feed, ico, html, cls) {

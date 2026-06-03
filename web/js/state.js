@@ -33,6 +33,7 @@ const initial = {
   currentSheet:     'liga',     // en fixtures
   currentRound:     'all',      // en fixtures
   currentPickSheet: 'liga',     // en picks
+  homeScope:        'general',  // en home: 'general' | 'liga' | 'exp:<torneo>'
 
   // achievements
   badges:           {},         // { Dari: ['t-pleno','t-streak'], ... }

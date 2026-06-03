@@ -1,18 +1,18 @@
 // ════════════════════════════════════════════════════════════════════
 // Entry point del frontend — nav, bootstrap, re-render.
 // ════════════════════════════════════════════════════════════════════
-import { CONFIG } from './config.js?v=20260603qa30';
-import { getState, setState, subscribe } from './state.js?v=20260603qa30';
-import { bootstrapState, refreshSyncStatus, primeFromCache } from './api.js?v=20260603qa30';
-import { getActivePlayer, setActivePlayer } from './auth.js?v=20260603qa30';
-import { renderHome }     from './render-home.js?v=20260603qa30';
-import { renderFixtures } from './render-fixtures.js?v=20260603qa30';
-import { renderPicks }    from './render-picks.js?v=20260603qa30';
-import { renderStats }    from './render-stats.js?v=20260603qa30';
-import { renderAdmin }    from './render-admin.js?v=20260603qa30';
-import { renderHub }      from './render-hub.js?v=20260603qa30';
-import { toast, renderSyncPill, renderLivePill } from './game-fx.js?v=20260603qa30';
-import { loadTeamLogos } from './team-logos.js?v=20260603qa30';
+import { CONFIG } from './config.js?v=20260603qa32';
+import { getState, setState, subscribe } from './state.js?v=20260603qa32';
+import { bootstrapState, refreshSyncStatus, primeFromCache } from './api.js?v=20260603qa32';
+import { getActivePlayer, setActivePlayer } from './auth.js?v=20260603qa32';
+import { renderHome, renderScopeChips, renderStandings } from './render-home.js?v=20260603qa32';
+import { renderFixtures } from './render-fixtures.js?v=20260603qa32';
+import { renderPicks }    from './render-picks.js?v=20260603qa32';
+import { renderStats }    from './render-stats.js?v=20260603qa32';
+import { renderAdmin }    from './render-admin.js?v=20260603qa32';
+import { renderHub }      from './render-hub.js?v=20260603qa32';
+import { toast, renderSyncPill, renderLivePill } from './game-fx.js?v=20260603qa32';
+import { loadTeamLogos } from './team-logos.js?v=20260603qa32';
 
 const VIEWS = ['home', 'fixtures', 'picks', 'stats', 'hub', 'admin'];
 
@@ -57,6 +57,17 @@ function wireSheetFilters() {
   document.querySelectorAll('#s-picks .ft[data-pick-sheet]').forEach(b => {
     b.onclick = () => { setState({ currentPickSheet: b.dataset.pickSheet }); renderPicks(); };
   });
+  // Chips de scope de la Tabla (qa32) — delegación, los chips se regeneran.
+  const scopeBox = document.getElementById('home-scope-chips');
+  if (scopeBox) {
+    scopeBox.addEventListener('click', e => {
+      const b = e.target.closest('.ft[data-scope]');
+      if (!b) return;
+      setState({ homeScope: b.dataset.scope });
+      renderScopeChips();
+      renderStandings();
+    });
+  }
 }
 
 // ── Picker UI en el header ──────────────────────────────────────────
