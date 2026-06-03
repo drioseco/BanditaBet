@@ -1,48 +1,15 @@
 // Admin view — cargar resultados, agregar fixtures, info de sync.
-import { getState, setState } from './state.js?v=20260601qa29';
-import { setMatchResult, addMatch as apiAddMatch, updateFactors as apiUpdateFactors, fetchResults as apiFetchResults, fetchOdds as apiFetchOdds, clearSandbox as apiClearSandbox, refreshSyncStatus, hasAdminPin, setAdminPin, AdminAuthError } from './api.js?v=20260601qa29';
-import { toast, fireConfetti } from './game-fx.js?v=20260601qa29';
+import { getState, setState } from './state.js?v=20260603qa30';
+import { setMatchResult, addMatch as apiAddMatch, updateFactors as apiUpdateFactors, fetchResults as apiFetchResults, fetchOdds as apiFetchOdds, clearSandbox as apiClearSandbox, refreshSyncStatus } from './api.js?v=20260603qa30';
+import { toast, fireConfetti } from './game-fx.js?v=20260603qa30';
 
-// ── qa23: PIN gate de Gestión ──────────────────────────────────────
-function promptAdminPin(reason) {
-  const msg = reason === 'invalid'
-    ? '🔒 PIN incorrecto. Reintentá:'
-    : '🔒 Sección protegida. Ingresá el PIN de admin:';
-  const pin = window.prompt(msg);
-  if (!pin) return false;
-  setAdminPin(pin.trim());
-  return true;
-}
-
-// Handler de errores para acciones admin: si el server rebota el PIN,
-// pide uno nuevo y devuelve true para que el caller pueda reintentar.
+// (qa30) PIN de admin eliminado: Gestión abierta, sin prompt.
 async function handleAdminError(e) {
-  if (e instanceof AdminAuthError) {
-    const ok = promptAdminPin('invalid');
-    if (!ok) { toast('Cancelado', 'err'); return false; }
-    return true; // caller hace retry
-  }
   toast('Error: ' + e.message, 'err');
   return false;
 }
 
 export function renderAdmin() {
-  // qa23: si no hay PIN guardado, pedir antes de mostrar nada.
-  if (!hasAdminPin()) {
-    const got = promptAdminPin();
-    if (!got) {
-      const main = document.querySelector('main') || document.body;
-      const msg = document.createElement('div');
-      msg.className = 'sync-help';
-      msg.style.padding = '2rem';
-      msg.style.textAlign = 'center';
-      msg.innerHTML = '🔒 Esta sección requiere PIN de admin. Refrescá la página o cambiá de tab para reintentar.';
-      const view = document.getElementById('view-admin') || main;
-      view.innerHTML = '';
-      view.appendChild(msg);
-      return;
-    }
-  }
   fillRoundSel('a');
   fillRoundSel('f');
   refreshSyncStatus();

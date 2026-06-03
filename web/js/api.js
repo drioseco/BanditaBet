@@ -3,39 +3,12 @@
 // Todos los POST son form-encoded para esquivar el CORS preflight.
 // Si CONFIG.API_URL no está configurada, fallback a /data/seed.json.
 // ════════════════════════════════════════════════════════════════════
-import { CONFIG, API } from './config.js?v=20260601qa29';
-import { getState, setState } from './state.js?v=20260601qa29';
+import { CONFIG, API } from './config.js?v=20260603qa30';
+import { getState, setState } from './state.js?v=20260603qa30';
 
-// ── Admin PIN (qa23) ────────────────────────────────────────────────
-// Vive en sessionStorage → persiste hasta cerrar la pestaña.
-const ADMIN_PIN_KEY = 'bb_admin_pin';
-
-export function getAdminPin() {
-  try { return sessionStorage.getItem(ADMIN_PIN_KEY) || ''; }
-  catch { return ''; }
-}
-export function setAdminPin(pin) {
-  try {
-    if (pin) sessionStorage.setItem(ADMIN_PIN_KEY, pin);
-    else     sessionStorage.removeItem(ADMIN_PIN_KEY);
-  } catch {}
-}
-export function hasAdminPin() { return !!getAdminPin(); }
-
-// Error tipado para que el caller pueda re-prompt el PIN.
-export class AdminAuthError extends Error {
-  constructor(reason) { super(reason); this.name = 'AdminAuthError'; this.reason = reason; }
-}
-
-// Wrapper: agrega admin_pin al body y lanza AdminAuthError si rebota.
-async function postAdmin(action, params = {}) {
-  const res = await post(action, { ...params, admin_pin: getAdminPin() });
-  if (res && res.ok === false && (res.error === 'invalid_admin_pin' || res.error === 'admin_pin_not_configured')) {
-    setAdminPin(''); // limpio el malo
-    throw new AdminAuthError(res.error);
-  }
-  return res;
-}
+// ── (qa30) PIN de admin eliminado ───────────────────────────────────
+// Las acciones de Gestión ya no requieren PIN; postAdmin es un alias de post.
+const postAdmin = post;
 
 // fetch con timeout (qa29): un request colgado no debe trabar la app 60s.
 async function fetchTO(url, opts = {}, ms = 12000) {

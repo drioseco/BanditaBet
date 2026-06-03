@@ -93,11 +93,10 @@ codificado en `parseExpertoRow` y `colIndexes_('experto')`.
 
 ## Pendientes / setup conocido
 
-- ⚠️ **`ADMIN_PIN` NO está seteado** en Script Properties → la Gestión desde la
-  app está bloqueada (devuelve `admin_pin_not_configured`). Para habilitarla:
-  Apps Script → Configuración del proyecto → Propiedades del script →
-  `ADMIN_PIN` = `1210`. (Mientras tanto, los resultados se cargan editando el
-  Sheet a mano; el trigger `onEdit` recalcula igual.)
+- **Gestión abierta (qa30):** se eliminó el PIN de admin. Cualquiera de los 4
+  puede cargar resultados / fixtures desde la app (ya no hay `assertAdmin_` ni
+  `ADMIN_PIN`). Si en el futuro se quiere volver a proteger, ver el historial
+  de qa23.
 - Hub: faltan fases F2 (calendario), F4 (goleadores). F1 (tablas) y F3/F5
   (eliminatorias + simulador) están vivas.
 
