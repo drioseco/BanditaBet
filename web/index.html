@@ -9,16 +9,18 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:wght@500;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Caveat:wght@500;700&display=swap">
 
 <!-- BB stylesheets -->
-<link rel="stylesheet" href="./css/tokens.css">
-<link rel="stylesheet" href="./css/themes.css">
-<link rel="stylesheet" href="./css/app.css">
-<link rel="stylesheet" href="./css/game-fx.css">
+<link rel="stylesheet" href="./css/tokens.css?v=20260603qa30">
+<link rel="stylesheet" href="./css/themes.css?v=20260603qa30">
+<link rel="stylesheet" href="./css/app.css?v=20260603qa30">
+<link rel="stylesheet" href="./css/game-fx.css?v=20260603qa30">
 
 <!-- Aplicar tema guardado antes del render para evitar flash -->
 <script>
 (function(){
+  var valid = { papel: 1, wc26: 1 };
   var t = localStorage.getItem('bb-theme');
-  if (t) document.documentElement.dataset.theme = t;
+  if (!valid[t]) { t = 'papel'; localStorage.setItem('bb-theme', t); }
+  document.documentElement.dataset.theme = t;
 })();
 </script>
 
@@ -52,11 +54,8 @@
   </nav>
   <div class="hdr-right">
     <div class="bb-theme-picker" id="theme-picker">
-      <button class="bb-theme-dot" data-theme="papel"    title="Papel · Panini 90s"></button>
-      <button class="bb-theme-dot" data-theme="nocturna" title="Nocturna · Cancha de noche"></button>
-      <button class="bb-theme-dot" data-theme="bone"     title="Hueso · Sobrio"></button>
-      <button class="bb-theme-dot" data-theme="modern"   title="Modern · Sport-tech"></button>
-      <button class="bb-theme-dot" data-theme="wc26"     title="WC26 · World Cup 2026"></button>
+      <button class="bb-theme-dot" data-theme="papel" title="Panini · 90s"></button>
+      <button class="bb-theme-dot" data-theme="wc26"  title="World Cup 2026"></button>
     </div>
     <div id="hdr-live"></div>
     <div id="hdr-sync"></div>
@@ -347,8 +346,9 @@
 <!-- Theme picker logic -->
 <script>
 (function () {
-  var THEMES = ['papel','nocturna','bone','modern','wc26'];
-  var saved  = localStorage.getItem('bb-theme') || 'papel';
+  var THEMES = ['papel','wc26'];
+  var saved  = localStorage.getItem('bb-theme');
+  if (THEMES.indexOf(saved) === -1) saved = 'papel';
 
   function applyTheme(key) {
     document.documentElement.dataset.theme = key;

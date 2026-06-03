@@ -1,10 +1,10 @@
 /* ════════════════════════════════════════════════════════════════════
-   BanditaBet · Temas de color (5 paletas)
+   BanditaBet · Temas de color (2 paletas)
    Cada tema redefine los tokens de tokens.css para que app.css
    los tome automáticamente sin ningún cambio adicional.
 
    Activar: document.documentElement.dataset.theme = '<key>'
-   Claves:  papel · nocturna · bone · modern · wc26
+   Claves:  papel (Panini) · wc26 (World Cup)
    ════════════════════════════════════════════════════════════════════ */
 
 /* ── V1 · PAPEL — default (Panini 90s) ─────────────────────────────
@@ -29,67 +29,6 @@
   --bb-border-sm: 1.5px solid #1F1A2E;
 }
 
-/* ── V1 · NOCTURNA — dark mode ──────────────────────────────────── */
-[data-theme="nocturna"] {
-  --bb-cream:   #1A1726;
-  --bb-paper:   #221E32;
-  --bb-ink:     #F0E8D2;
-  --bb-maroon:  #C84257;
-  --bb-gold:    #F2C44A;
-  --bb-tomate:  #FF6A4A;
-  --bb-pasto:   #5BB17A;
-  --bb-cobalt:  #5B8DEF;
-  --bb-holo-1:  #3D5066;
-  --bb-holo-2:  #5E3D55;
-  --bb-holo-3:  #6B5A2A;
-  --bb-shadow:    4px 4px 0 #F0E8D2;
-  --bb-shadow-sm: 3px 3px 0 #F0E8D2;
-  --bb-shadow-xs: 2px 2px 0 #F0E8D2;
-  --bb-border:    2px solid #F0E8D2;
-  --bb-border-sm: 1.5px solid #F0E8D2;
-}
-
-/* ── V1 · HUESO — sobrio, menos amarillo ───────────────────────── */
-[data-theme="bone"] {
-  --bb-cream:   #E8E2D3;
-  --bb-paper:   #EFEAD9;
-  --bb-ink:     #262030;
-  --bb-maroon:  #7A2435;
-  --bb-gold:    #D4A53A;
-  --bb-tomate:  #D94A30;
-  --bb-pasto:   #3A7849;
-  --bb-cobalt:  #2B5BB5;
-  --bb-holo-1:  #A5C8D8;
-  --bb-holo-2:  #E0BBC8;
-  --bb-holo-3:  #E8D58A;
-  --bb-shadow:    4px 4px 0 #262030;
-  --bb-shadow-sm: 3px 3px 0 #262030;
-  --bb-shadow-xs: 2px 2px 0 #262030;
-  --bb-border:    2px solid #262030;
-  --bb-border-sm: 1.5px solid #262030;
-}
-
-/* ── V2 · MODERN — sport-tech editorial ────────────────────────── */
-[data-theme="modern"] {
-  --bb-cream:   #0A0A0F;
-  --bb-paper:   #16161D;
-  --bb-ink:     #F4F1EA;
-  --bb-maroon:  #FF4D2E;
-  --bb-gold:    #D4FF3D;
-  --bb-tomate:  #FF4D2E;
-  --bb-pasto:   #7BCC3D;
-  --bb-cobalt:  #8A8A95;
-  --bb-rosa:    #FF4D2E;
-  --bb-holo-1:  #1E3A2F;
-  --bb-holo-2:  #2E3A1A;
-  --bb-holo-3:  #3A3A10;
-  --bb-shadow:    4px 4px 0 #D4FF3D;
-  --bb-shadow-sm: 3px 3px 0 #D4FF3D;
-  --bb-shadow-xs: 2px 2px 0 #D4FF3D;
-  --bb-border:    2px solid #23232B;
-  --bb-border-sm: 1.5px solid #23232B;
-}
-
 /* ── V3 · WC26 — World Cup 2026 multicromático ─────────────────── */
 [data-theme="wc26"] {
   --bb-cream:   #FFFFFF;
@@ -110,60 +49,8 @@
   --bb-border-sm: 1.5px solid #0A0A0A;
 }
 
-/* ── Modern + Nocturna overrides — fix hardcoded light/dark colors ── */
-[data-theme="modern"] .hero,
-[data-theme="nocturna"] .hero { background: #1A1A24; }
-
-[data-theme="modern"] .std-head,
-[data-theme="nocturna"] .std-head { background: #23232B; }
-
-[data-theme="modern"] .sdiv-txt,
-[data-theme="nocturna"] .sdiv-txt { color: rgba(244,241,234,.45); }
-
-[data-theme="modern"] .sdiv-line,
-[data-theme="nocturna"] .sdiv-line { background: rgba(244,241,234,.12); }
-
-[data-theme="modern"] .hero-sub,
-[data-theme="nocturna"] .hero-sub { color: rgba(244,241,234,.5); }
-
-[data-theme="modern"] .std-row:hover,
-[data-theme="nocturna"] .std-row:hover { background: rgba(244,241,234,.03); }
-
-[data-theme="modern"] .std-row,
-[data-theme="nocturna"] .std-row { border-bottom-color: rgba(244,241,234,.06); }
-
-[data-theme="modern"] .kpi,
-[data-theme="nocturna"] .kpi { background: rgba(244,241,234,.06); border-color: rgba(244,241,234,.1); }
-
-[data-theme="modern"] .kpi-l,
-[data-theme="nocturna"] .kpi-l { color: rgba(244,241,234,.4); }
-
-[data-theme="modern"] .prog-lbl,
-[data-theme="nocturna"] .prog-lbl { color: rgba(244,241,234,.42); }
-
-[data-theme="modern"] .prog-bar,
-[data-theme="nocturna"] .prog-bar { background: rgba(244,241,234,.12); border-color: rgba(244,241,234,.1); }
-
-[data-theme="modern"] .prog-pct,
-[data-theme="nocturna"] .prog-pct { color: rgba(244,241,234,.42); }
-
-[data-theme="modern"] .std-meta-stat,
-[data-theme="nocturna"] .std-meta-stat { color: rgba(244,241,234,.55); }
-
-[data-theme="modern"] .std-meta-pct,
-[data-theme="nocturna"] .std-meta-pct { color: rgba(244,241,234,.35); }
-
-[data-theme="modern"] .std-bar-wrap,
-[data-theme="nocturna"] .std-bar-wrap { background: rgba(244,241,234,.08); }
-
-[data-theme="modern"] .nb,
-[data-theme="nocturna"] .nb { color: rgba(244,241,234,.55); }
-
-[data-theme="modern"] .hdr small,
-[data-theme="nocturna"] .hdr small { color: rgba(244,241,234,.45); }
-
 /* ════════════════════════════════════════════════════════════════════
-   Theme Picker — 5 dots en el header
+   Theme Picker — 2 dots en el header (Panini · World Cup)
    ════════════════════════════════════════════════════════════════════ */
 .bb-theme-picker {
   display: flex;
@@ -185,7 +72,4 @@
 
 /* Colores representativos de cada paleta */
 .bb-theme-dot[data-theme="papel"]    { background: #8C1D2F; border-color: #F2E3C2; }
-.bb-theme-dot[data-theme="nocturna"] { background: #1A1726; border-color: #C84257; }
-.bb-theme-dot[data-theme="bone"]     { background: #E8E2D3; border-color: #7A2435; }
-.bb-theme-dot[data-theme="modern"]   { background: #0A0A0F; border-color: #D4FF3D; }
 .bb-theme-dot[data-theme="wc26"]     { background: #E1261C; border-color: #FFD100; }
