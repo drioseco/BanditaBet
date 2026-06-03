@@ -1,18 +1,18 @@
 // ════════════════════════════════════════════════════════════════════
 // Entry point del frontend — nav, bootstrap, re-render.
 // ════════════════════════════════════════════════════════════════════
-import { CONFIG } from './config.js?v=20260531qa27';
-import { getState, setState, subscribe } from './state.js?v=20260531qa27';
-import { bootstrapState, refreshSyncStatus } from './api.js?v=20260531qa27';
-import { getActivePlayer, setActivePlayer } from './auth.js?v=20260531qa27';
-import { renderHome }     from './render-home.js?v=20260531qa27';
-import { renderFixtures } from './render-fixtures.js?v=20260531qa27';
-import { renderPicks }    from './render-picks.js?v=20260531qa27';
-import { renderStats }    from './render-stats.js?v=20260531qa27';
-import { renderAdmin }    from './render-admin.js?v=20260531qa27';
-import { renderHub }      from './render-hub.js?v=20260531qa27';
-import { toast, renderSyncPill, renderLivePill } from './game-fx.js?v=20260531qa27';
-import { loadTeamLogos } from './team-logos.js?v=20260531qa27';
+import { CONFIG } from './config.js?v=20260601qa29';
+import { getState, setState, subscribe } from './state.js?v=20260601qa29';
+import { bootstrapState, refreshSyncStatus, primeFromCache } from './api.js?v=20260601qa29';
+import { getActivePlayer, setActivePlayer } from './auth.js?v=20260601qa29';
+import { renderHome }     from './render-home.js?v=20260601qa29';
+import { renderFixtures } from './render-fixtures.js?v=20260601qa29';
+import { renderPicks }    from './render-picks.js?v=20260601qa29';
+import { renderStats }    from './render-stats.js?v=20260601qa29';
+import { renderAdmin }    from './render-admin.js?v=20260601qa29';
+import { renderHub }      from './render-hub.js?v=20260601qa29';
+import { toast, renderSyncPill, renderLivePill } from './game-fx.js?v=20260601qa29';
+import { loadTeamLogos } from './team-logos.js?v=20260601qa29';
 
 const VIEWS = ['home', 'fixtures', 'picks', 'stats', 'hub', 'admin'];
 
@@ -121,6 +121,17 @@ async function init() {
   const saved = getActivePlayer();
   if (saved) setState({ picker: saved });
 
+  subscribe(() => {
+    renderSyncPill(document.getElementById('hdr-sync'));
+  });
+
+  // qa29 · stale-while-revalidate: si hay caché local, pintar YA (instantáneo)
+  // mientras se busca data fresca en background.
+  if (primeFromCache()) {
+    if (!getState().picker && getState().players[0]) setState({ picker: getState().players[0].name });
+    renderActive();
+  }
+
   try {
     // Bootstrap state y escudos en paralelo
     await Promise.all([bootstrapState(), loadTeamLogos()]);
@@ -131,10 +142,6 @@ async function init() {
     console.error(e);
     toast('No se pudo cargar la data — revisá CONFIG.API_URL', 'err');
   }
-
-  subscribe(() => {
-    renderSyncPill(document.getElementById('hdr-sync'));
-  });
 
   renderActive();
   if (!getActivePlayer()) setTimeout(openPickerModal, 600);

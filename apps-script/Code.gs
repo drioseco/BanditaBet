@@ -161,7 +161,7 @@ function handle(action, p) {
     if (authErr) return authErr;
     switch (action) {
       case 'health':       return health_();
-      case 'state':        return getState_();
+      case 'state':        return stateCached_(p);
       case 'sync-status':  return syncStatus_();
       case 'savePicks':    return savePicks_(p);
       case 'setResult':    return setResult_(p);
@@ -190,6 +190,69 @@ function health_() {
 }
 function syncStatus_() {
   return { ok: true, last_synced_at: new Date().toISOString(), source: 'apps-script', live: true };
+}
+
+// ── Caché de state (qa29) ───────────────────────────────────────────
+// getState_ lee 2 hojas enteras y recalcula todo (~397KB, 5-9s). Lo
+// cacheamos chunkeado en CacheService (límite 100KB/key) reusando el
+// patrón del Hub. Se invalida explícitamente al escribir (ver más abajo);
+// el TTL es solo red de seguridad. &fresh=1 saltea la caché.
+var STATE_TTL = 600;          // 10 min
+var STATE_CHUNK = 90000;      // chars por key (< 100KB)
+var STATE_MAX_CHUNKS = 40;    // tope defensivo para invalidación
+
+function stateCached_(p) {
+  var fresh = (p && (p.fresh === '1' || p.fresh === 'true' || p.fresh === true));
+  var cache = CacheService.getScriptCache();
+  if (!fresh) {
+    var hit = cacheStateGet_(cache);
+    if (hit) { hit.cached = true; return hit; }
+  }
+  var data = getState_();
+  cacheStatePut_(cache, data);
+  return data;
+}
+
+function cacheStatePut_(cache, obj) {
+  try {
+    var s = JSON.stringify(obj);
+    var n = Math.ceil(s.length / STATE_CHUNK);
+    if (n > STATE_MAX_CHUNKS) return; // demasiado grande, no cachear
+    var map = {};
+    for (var i = 0; i < n; i++) map['state:' + i] = s.substr(i * STATE_CHUNK, STATE_CHUNK);
+    map['state:meta'] = JSON.stringify({ n: n, len: s.length, at: Date.now() });
+    cache.putAll(map, STATE_TTL);
+  } catch (_) { /* si no entra al caché, devolvemos igual sin cachear */ }
+}
+
+function cacheStateGet_(cache) {
+  try {
+    var metaRaw = cache.get('state:meta');
+    if (!metaRaw) return null;
+    var meta = JSON.parse(metaRaw);
+    var keys = [];
+    for (var i = 0; i < meta.n; i++) keys.push('state:' + i);
+    var got = cache.getAll(keys);
+    var parts = [];
+    for (var j = 0; j < meta.n; j++) {
+      var part = got['state:' + j];
+      if (part == null) return null;        // chunk faltante → miss
+      parts.push(part);
+    }
+    var s = parts.join('');
+    if (s.length !== meta.len) return null;  // integridad
+    return JSON.parse(s);
+  } catch (_) { return null; }
+}
+
+// Borra el caché de state. Se llama tras cada escritura a Liga/Experto.
+function invalidateStateCache_() {
+  try {
+    var cache = CacheService.getScriptCache();
+    var keys = ['state:meta'];
+    for (var i = 0; i < STATE_MAX_CHUNKS; i++) keys.push('state:' + i);
+    cache.removeAll(keys);
+  } catch (_) {}
 }
 
 // ── getState_: snapshot completo del Sheet ─────────────────────────
@@ -334,6 +397,7 @@ function savePicks_(p) {
       SHEETS[loc.compId].writer(sheet, loc.row, playerName, parseInt(pk.home_score, 10), parseInt(pk.away_score, 10));
       saved++;
     });
+    if (saved > 0) invalidateStateCache_();   // qa29: refrescar caché de state
     return { ok: true, saved: saved, locked: locked, missing: missing };
   } finally {
     lock.releaseLock();
@@ -389,6 +453,7 @@ function setResult_(p) {
       sheet.getRange(loc.row, IDX.statuses[pName] + 1).setValue(st);
     });
 
+    invalidateStateCache_();   // qa29
     return { ok: true, matchId: matchId, home_score: hs, away_score: as_, result: resultLetter, result_factor: resultFactor };
   } finally {
     lock.releaseLock();
@@ -480,6 +545,7 @@ function recomputeRow_(sheet, rowNum, compId) {
     sheet.getRange(rowNum, IDX.points[pName] + 1).setValue(pts);
     sheet.getRange(rowNum, IDX.statuses[pName] + 1).setValue(st);
   });
+  invalidateStateCache_();   // qa29: edición directa en el Sheet (onEdit)
 }
 
 // Limpieza retroactiva (qa18 bugfix): borra result/result_factor/puntos/statuses
@@ -597,6 +663,7 @@ function updateFactors_(p) {
     if (fl != null && !isNaN(fl)) sheet.getRange(loc.row, IDX.fl + 1).setValue(fl);
     if (fe != null && !isNaN(fe)) sheet.getRange(loc.row, IDX.fe + 1).setValue(fe);
     if (fv != null && !isNaN(fv)) sheet.getRange(loc.row, IDX.fv + 1).setValue(fv);
+    invalidateStateCache_();   // qa29
     return { ok: true, matchId: matchId, factor_home: fl, factor_draw: fe, factor_away: fv };
   } finally {
     lock.releaseLock();
@@ -629,6 +696,7 @@ function addMatch_(p) {
     if (p.factor_away != null) rowArr[IDX.fv] = parseFloat(p.factor_away);
     sheet.appendRow(rowArr);
     var newRow = sheet.getLastRow();
+    invalidateStateCache_();   // qa29
     return {
       ok: true,
       match: {

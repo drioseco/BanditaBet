@@ -22,17 +22,23 @@
 })();
 </script>
 
-<!-- React + Babel solo para el logo -->
-<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin></script>
-<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin></script>
+<!-- Logo: SVG/CSS estático (qa29 — antes React+Babel, ~4.3MB; ya no) -->
+<style>
+  #logo-badge{width:36px;height:36px;background:#E8B33D;border:3px solid #1F1A2E;
+    border-radius:50%;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;box-shadow:5px 5px 0 #1F1A2E;flex:0 0 auto}
+  #logo-badge .lb-bb{font-family:Anton,sans-serif;font-style:italic;font-size:10.5px;
+    line-height:1;color:#1F1A2E}
+  #logo-badge .lb-foil{font-family:'Space Mono',monospace;font-size:3.3px;
+    letter-spacing:1px;color:#1F1A2E;margin-top:2px}
+</style>
 </head>
 <body data-api-url="">
 
 <!-- ═══ HEADER ═══════════════════════════════════════ -->
 <div class="hdr">
   <div class="logo-area">
-    <div id="logo-badge"></div>
+    <div id="logo-badge"><span class="lb-bb">BB</span><span class="lb-foil">★ FOIL ★</span></div>
     <div class="logo-text">Bandita Bet<small>PRODE 2026 · XV ANIVERSARIO</small></div>
   </div>
   <nav class="nav">
@@ -362,11 +368,8 @@
 })();
 </script>
 
-<!-- BB Logo (React + Babel) -->
-<script type="text/babel" src="./js/logo.jsx?v=20260531qa27"></script>
-
 <!-- App (ES modules) -->
-<script type="module" src="./js/app.js?v=20260531qa27"></script>
+<script type="module" src="./js/app.js?v=20260601qa29"></script>
 
 </body>
 </html>

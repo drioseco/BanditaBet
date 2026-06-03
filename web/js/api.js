@@ -3,8 +3,8 @@
 // Todos los POST son form-encoded para esquivar el CORS preflight.
 // Si CONFIG.API_URL no está configurada, fallback a /data/seed.json.
 // ════════════════════════════════════════════════════════════════════
-import { CONFIG, API } from './config.js?v=20260531qa27';
-import { getState, setState } from './state.js?v=20260531qa27';
+import { CONFIG, API } from './config.js?v=20260601qa29';
+import { getState, setState } from './state.js?v=20260601qa29';
 
 // ── Admin PIN (qa23) ────────────────────────────────────────────────
 // Vive en sessionStorage → persiste hasta cerrar la pestaña.
@@ -37,6 +37,17 @@ async function postAdmin(action, params = {}) {
   return res;
 }
 
+// fetch con timeout (qa29): un request colgado no debe trabar la app 60s.
+async function fetchTO(url, opts = {}, ms = 12000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 async function get(action, params = {}) {
   if (!API()) throw new Error('api_not_configured');
   const url = new URL(API());
@@ -44,7 +55,7 @@ async function get(action, params = {}) {
   for (const [k, v] of Object.entries(params)) {
     if (v != null) url.searchParams.set(k, v);
   }
-  const res = await fetch(url.toString());
+  const res = await fetchTO(url.toString());
   if (!res.ok) throw new Error('http_' + res.status);
   return res.json();
 }
@@ -56,20 +67,45 @@ async function post(action, params = {}) {
   for (const [k, v] of Object.entries(params)) {
     body.set(k, typeof v === 'object' ? JSON.stringify(v) : v);
   }
-  const res = await fetch(API(), { method: 'POST', body });
+  const res = await fetchTO(API(), { method: 'POST', body });
   if (!res.ok) throw new Error('http_' + res.status);
   return res.json();
 }
 
+// ── Caché de estado en cliente (qa29 · stale-while-revalidate) ───────
+const STATE_CACHE_KEY = 'bb_state_cache';
+
+function saveStateCache(data) {
+  try { localStorage.setItem(STATE_CACHE_KEY, JSON.stringify(data)); } catch {}
+}
+function loadStateCache() {
+  try { const raw = localStorage.getItem(STATE_CACHE_KEY); return raw ? JSON.parse(raw) : null; }
+  catch { return null; }
+}
+
+// Pinta al instante desde la caché local si existe (la llama app.js antes del
+// fetch). Devuelve true si había caché usable.
+export function primeFromCache() {
+  const cached = loadStateCache();
+  if (cached && (cached.players || []).length) {
+    ingestServerState({ ...cached, _cached: true });
+    return true;
+  }
+  return false;
+}
+
 // ── Bootstrap ────────────────────────────────────────────────────────
 export async function bootstrapState() {
-  setState({ loading: true, error: null });
+  const hadCache = (loadStateCache() || {}).players != null;
+  if (!hadCache) setState({ loading: true, error: null });
   try {
     if (!API()) throw new Error('no_api_url');
     const data = await get('state');
-    return ingestServerState(data);
+    saveStateCache(data);            // guardar para la próxima visita
+    return ingestServerState(data);  // re-render con data fresca
   } catch (e) {
-    console.warn('[api] backend Apps Script no disponible, usando seed.json:', e.message);
+    console.warn('[api] backend no disponible:', e.message);
+    if (hadCache) return;            // ya pintamos algo usable desde caché
     try {
       const seed = await fetch('./data/seed.json').then(r => r.json());
       return ingestServerState({ ...seed, _seed: true });
