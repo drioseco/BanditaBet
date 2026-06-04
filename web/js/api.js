@@ -3,8 +3,8 @@
 // Todos los POST son form-encoded para esquivar el CORS preflight.
 // Si CONFIG.API_URL no está configurada, fallback a /data/seed.json.
 // ════════════════════════════════════════════════════════════════════
-import { CONFIG, API } from './config.js?v=20260603qa33';
-import { getState, setState } from './state.js?v=20260603qa33';
+import { CONFIG, API } from './config.js?v=20260603qa35';
+import { getState, setState } from './state.js?v=20260603qa35';
 
 // ── (qa30) PIN de admin eliminado ───────────────────────────────────
 // Las acciones de Gestión ya no requieren PIN; postAdmin es un alias de post.
@@ -33,14 +33,14 @@ async function get(action, params = {}) {
   return res.json();
 }
 
-async function post(action, params = {}) {
+async function post(action, params = {}, ms = 12000) {
   if (!API()) throw new Error('api_not_configured');
   const body = new URLSearchParams();
   body.set('action', action);
   for (const [k, v] of Object.entries(params)) {
     body.set(k, typeof v === 'object' ? JSON.stringify(v) : v);
   }
-  const res = await fetchTO(API(), { method: 'POST', body });
+  const res = await fetchTO(API(), { method: 'POST', body }, ms);
   if (!res.ok) throw new Error('http_' + res.status);
   return res.json();
 }
@@ -170,6 +170,7 @@ export async function getHub(kind, comp, { fresh } = {}) {
 }
 
 // qa33 — Agente IA de estadísticas. POST para no exponer la pregunta en la URL.
+// Timeout largo (90s): Claude + búsqueda web puede tardar bastante.
 export async function askStats(q) {
-  return post('hubAsk', { q });
+  return post('hubAsk', { q }, 90000);
 }

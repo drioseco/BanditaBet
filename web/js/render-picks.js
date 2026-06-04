@@ -1,11 +1,11 @@
 // ════════════════════════════════════════════════════════════════════
 // Picks view — carga/edita picks del jugador seleccionado en localStorage.
 // ════════════════════════════════════════════════════════════════════
-import { getState, setState, hasRes, hoursUntil, mDate, TODAY } from './state.js?v=20260603qa33';
-import { CONFIG } from './config.js?v=20260603qa33';
-import { savePicks } from './api.js?v=20260603qa33';
-import { fireConfetti, toast } from './game-fx.js?v=20260603qa33';
-import { teamShieldHTML } from './team-logos.js?v=20260603qa33';
+import { getState, setState, hasRes, hoursUntil, mDate, TODAY } from './state.js?v=20260603qa35';
+import { CONFIG } from './config.js?v=20260603qa35';
+import { savePicks } from './api.js?v=20260603qa35';
+import { fireConfetti, toast } from './game-fx.js?v=20260603qa35';
+import { teamShieldHTML } from './team-logos.js?v=20260603qa35';
 
 const draft = {};   // { match_id: { home_score, away_score } }
 
