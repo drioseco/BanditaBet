@@ -9,10 +9,10 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:wght@500;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Caveat:wght@500;700&display=swap">
 
 <!-- BB stylesheets -->
-<link rel="stylesheet" href="./css/tokens.css?v=20260603qa32">
-<link rel="stylesheet" href="./css/themes.css?v=20260603qa32">
-<link rel="stylesheet" href="./css/app.css?v=20260603qa32">
-<link rel="stylesheet" href="./css/game-fx.css?v=20260603qa32">
+<link rel="stylesheet" href="./css/tokens.css?v=20260603qa33">
+<link rel="stylesheet" href="./css/themes.css?v=20260603qa33">
+<link rel="stylesheet" href="./css/app.css?v=20260603qa33">
+<link rel="stylesheet" href="./css/game-fx.css?v=20260603qa33">
 
 <!-- Aplicar tema guardado antes del render para evitar flash -->
 <script>
@@ -329,16 +329,24 @@
     <p class="hub-sub">Datos oficiales en vivo · Liga Chile, Libertadores y Sudamericana. Función en pruebas — puede tener ajustes.</p>
   </div>
 
-  <div class="hub-toolbar">
-    <div class="hub-comps" id="hub-comps">
-      <button class="hub-comp on" data-comp="liga">Liga Chile</button>
-      <button class="hub-comp" data-comp="liberta">Libertadores</button>
-      <button class="hub-comp" data-comp="sudamer">Sudamericana</button>
-    </div>
-    <button class="hub-refresh" id="hub-refresh" title="Actualizar datos">↻</button>
+  <div class="flt-row" id="hub-views">
+    <button class="ft on" data-view="datos">Datos</button>
+    <button class="ft" data-view="ia">Pregúntale IA 🤖</button>
   </div>
 
-  <div id="hub-content"><div class="hub-loading">Cargando tabla…</div></div>
+  <div id="hub-datos">
+    <div class="hub-toolbar">
+      <div class="hub-comps" id="hub-comps">
+        <button class="hub-comp on" data-comp="liga">Liga Chile</button>
+        <button class="hub-comp" data-comp="liberta">Libertadores</button>
+        <button class="hub-comp" data-comp="sudamer">Sudamericana</button>
+      </div>
+      <button class="hub-refresh" id="hub-refresh" title="Actualizar datos">↻</button>
+    </div>
+    <div id="hub-content"><div class="hub-loading">Cargando tabla…</div></div>
+  </div>
+
+  <div id="hub-ia" class="hidden"></div>
 </div>
 
 </div><!-- /main -->
@@ -371,7 +379,7 @@
 </script>
 
 <!-- App (ES modules) -->
-<script type="module" src="./js/app.js?v=20260603qa32"></script>
+<script type="module" src="./js/app.js?v=20260603qa33"></script>
 
 </body>
 </html>

@@ -6,11 +6,13 @@
 //  · F3/F5: simulador de bracket para las copas, proyectado desde los
 //    grupos actuales (top 2 clasifican). El sorteo real 2026 aún no existe.
 // ════════════════════════════════════════════════════════════════════
-import { getHub } from './api.js?v=20260603qa32';
+import { getHub, askStats } from './api.js?v=20260603qa33';
 
 let _comp = 'liga';
 let _mode = 'tabla';        // 'tabla' | 'bracket'
+let _view = 'datos';        // 'datos' | 'ia'
 let _wired = false;
+let _iaWired = false;
 let _groupsCache = {};       // comp → groups (para no refetchear al togglear modo)
 let _bracket = null;         // estado del simulador
 
@@ -18,11 +20,19 @@ const HAS_KNOCKOUT = { liga: false, liberta: true, sudamer: true };
 
 export function renderHub() {
   if (!_wired) wire();
-  syncToolbar();
-  load();
+  applyView();
+  if (_view === 'datos') { syncToolbar(); load(); }
+  else renderAsk();
 }
 
 function wire() {
+  document.querySelectorAll('#hub-views .ft[data-view]').forEach(btn => {
+    btn.onclick = () => {
+      if (btn.dataset.view === _view) return;
+      _view = btn.dataset.view;
+      renderHub();
+    };
+  });
   document.querySelectorAll('#hub-comps .hub-comp').forEach(btn => {
     btn.onclick = () => {
       if (btn.classList.contains('on')) return;
@@ -38,6 +48,92 @@ function wire() {
   const refresh = document.getElementById('hub-refresh');
   if (refresh) refresh.onclick = () => { _groupsCache = {}; _bracket = null; load(true); };
   _wired = true;
+}
+
+// Muestra/oculta los paneles Datos vs IA y marca el tab activo.
+function applyView() {
+  document.querySelectorAll('#hub-views .ft[data-view]').forEach(b =>
+    b.classList.toggle('on', b.dataset.view === _view));
+  const datos = document.getElementById('hub-datos');
+  const ia = document.getElementById('hub-ia');
+  if (datos) datos.classList.toggle('hidden', _view !== 'datos');
+  if (ia)    ia.classList.toggle('hidden', _view !== 'ia');
+}
+
+// ── Vista "Pregúntale IA" (qa33) ─────────────────────────────────────
+const ASK_EXAMPLES = [
+  '¿Quién es el goleador histórico de Colo-Colo?',
+  '¿Cuándo fue el último Superclásico y cómo terminó?',
+  '¿Qué equipos chilenos ganaron la Copa Libertadores?',
+];
+
+function renderAsk() {
+  const root = document.getElementById('hub-ia');
+  if (!root) return;
+  if (!root.dataset.built) {
+    root.innerHTML = `
+      <div class="ask-card">
+        <div class="ask-intro">Preguntá sobre fútbol chileno, copas o la selección. Responde con datos y fuentes.</div>
+        <textarea id="ask-input" class="ask-input" rows="2" maxlength="500"
+          placeholder="Ej: ¿Quién es el goleador histórico de la U?"></textarea>
+        <div class="ask-row">
+          <div class="ask-chips" id="ask-chips">
+            ${ASK_EXAMPLES.map(e => `<button class="ask-chip" type="button">${e}</button>`).join('')}
+          </div>
+          <button id="ask-send" class="ask-send" type="button">Preguntar</button>
+        </div>
+        <div id="ask-answer"></div>
+      </div>`;
+    root.dataset.built = '1';
+  }
+  if (!_iaWired) wireAsk();
+}
+
+function wireAsk() {
+  const input = document.getElementById('ask-input');
+  const send = document.getElementById('ask-send');
+  document.querySelectorAll('#ask-chips .ask-chip').forEach(c => {
+    c.onclick = () => { input.value = c.textContent; input.focus(); };
+  });
+  send.onclick = () => submitAsk();
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitAsk(); }
+  });
+  _iaWired = true;
+}
+
+async function submitAsk() {
+  const input = document.getElementById('ask-input');
+  const send = document.getElementById('ask-send');
+  const out = document.getElementById('ask-answer');
+  const q = (input.value || '').trim();
+  if (!q) return;
+  send.disabled = true;
+  out.innerHTML = `<div class="ask-loading"><span class="ask-spin"></span> Buscando y pensando…</div>`;
+  try {
+    const r = await askStats(q);
+    if (!r || r.ok === false) {
+      const msg = r && r.error === 'ai_not_configured'
+        ? 'El agente aún no está configurado (falta la API key de Anthropic).'
+        : r && r.error === 'ai_daily_limit'
+        ? 'Se alcanzó el límite de consultas por hoy. Probá mañana.'
+        : `No se pudo responder${r && r.detail ? ': ' + r.detail : '.'}`;
+      out.innerHTML = `<div class="ask-err">${msg}</div>`;
+      return;
+    }
+    const ans = (r.answer || 'Sin respuesta.').replace(/</g, '&lt;').replace(/\n/g, '<br>');
+    const srcs = (r.sources || []).slice(0, 6);
+    const srcHtml = srcs.length ? `
+      <div class="ask-sources">
+        <div class="ask-sources-h">Fuentes</div>
+        ${srcs.map(s => `<a class="ask-src" href="${s.url}" target="_blank" rel="noopener">${(s.title || s.url).replace(/</g,'&lt;')}</a>`).join('')}
+      </div>` : '';
+    out.innerHTML = `<div class="ask-bubble">${ans}</div>${srcHtml}${r.cached ? '<div class="ask-cached">· respuesta cacheada</div>' : ''}`;
+  } catch (e) {
+    out.innerHTML = `<div class="ask-err">Error de red: ${e.message}</div>`;
+  } finally {
+    send.disabled = false;
+  }
 }
 
 // Muestra/oculta el toggle Tabla/Eliminatorias según la competición.

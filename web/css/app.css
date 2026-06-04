@@ -314,6 +314,55 @@ body {
 .stdm-pts { font-family: var(--bb-display); font-style: italic; font-size: 1rem; }
 .stdm-pts small { font-size: .5rem; margin-left: 1px; opacity: .7; }
 
+/* ═══ Agente IA del Hub (qa33) ═════════════════════════ */
+.ask-card {
+  background: var(--bb-paper); border: var(--bb-border-sm); border-color: rgba(31,26,46,.18);
+  border-radius: 6px; box-shadow: var(--bb-shadow-xs); padding: 1rem;
+}
+.ask-intro { font-family: var(--bb-ui); font-size: .82rem; color: rgba(31,26,46,.6); margin-bottom: .6rem; }
+.ask-input {
+  width: 100%; box-sizing: border-box; resize: vertical;
+  border: var(--bb-border-sm); border-color: rgba(31,26,46,.25); border-radius: 4px;
+  background: var(--bb-cream); color: var(--bb-ink);
+  font-family: var(--bb-ui); font-size: .9rem; padding: .55rem .7rem;
+}
+.ask-input:focus { outline: none; border-color: var(--bb-ink); }
+.ask-row { display: flex; gap: .6rem; align-items: flex-start; margin-top: .6rem; flex-wrap: wrap; }
+.ask-chips { display: flex; flex-wrap: wrap; gap: .35rem; flex: 1 1 auto; }
+.ask-chip {
+  background: var(--bb-cream); border: 1.5px solid rgba(31,26,46,.18); border-radius: 999px;
+  color: rgba(31,26,46,.6); font-family: var(--bb-ui); font-size: .68rem; font-weight: 600;
+  padding: 3px 10px; cursor: pointer; transition: all var(--bb-fast);
+}
+.ask-chip:hover { border-color: var(--bb-ink); color: var(--bb-ink); }
+.ask-send {
+  background: var(--bb-ink); color: var(--bb-cream); border: none; border-radius: 4px;
+  font-family: var(--bb-ui); font-weight: 700; font-size: .8rem; text-transform: uppercase;
+  letter-spacing: .4px; padding: 8px 16px; cursor: pointer; flex: 0 0 auto;
+  box-shadow: var(--bb-shadow-xs);
+}
+.ask-send:disabled { opacity: .5; cursor: default; }
+.ask-loading { display: flex; align-items: center; gap: .5rem; margin-top: 1rem;
+  font-family: var(--bb-mono); font-size: .72rem; color: rgba(31,26,46,.55); }
+.ask-spin {
+  width: 13px; height: 13px; border: 2px solid rgba(31,26,46,.2); border-top-color: var(--bb-ink);
+  border-radius: 50%; display: inline-block; animation: ask-spin .7s linear infinite;
+}
+@keyframes ask-spin { to { transform: rotate(360deg); } }
+.ask-bubble {
+  margin-top: 1rem; background: var(--bb-cream); border-left: 3px solid var(--bb-gold);
+  border-radius: 4px; padding: .8rem .9rem; font-family: var(--bb-ui); font-size: .9rem;
+  line-height: 1.5; color: var(--bb-ink);
+}
+.ask-err { margin-top: 1rem; color: var(--bb-tomate); font-family: var(--bb-ui); font-size: .85rem; }
+.ask-sources { margin-top: .7rem; display: flex; flex-direction: column; gap: .25rem; }
+.ask-sources-h { font-family: var(--bb-mono); font-size: .55rem; font-weight: 700;
+  letter-spacing: .8px; text-transform: uppercase; color: rgba(31,26,46,.4); }
+.ask-src { font-family: var(--bb-ui); font-size: .76rem; color: var(--bb-cobalt);
+  text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ask-src:hover { text-decoration: underline; }
+.ask-cached { margin-top: .4rem; font-family: var(--bb-mono); font-size: .55rem; color: rgba(31,26,46,.35); }
+
 /* ═══ FIXTURE CARDS ════════════════════════════════════ */
 .jornada-hdr {
   font-family: var(--bb-display); font-style: italic; font-size: .85rem;

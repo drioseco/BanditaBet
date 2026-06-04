@@ -3,8 +3,8 @@
 // Todos los POST son form-encoded para esquivar el CORS preflight.
 // Si CONFIG.API_URL no está configurada, fallback a /data/seed.json.
 // ════════════════════════════════════════════════════════════════════
-import { CONFIG, API } from './config.js?v=20260603qa32';
-import { getState, setState } from './state.js?v=20260603qa32';
+import { CONFIG, API } from './config.js?v=20260603qa33';
+import { getState, setState } from './state.js?v=20260603qa33';
 
 // ── (qa30) PIN de admin eliminado ───────────────────────────────────
 // Las acciones de Gestión ya no requieren PIN; postAdmin es un alias de post.
@@ -167,4 +167,9 @@ export async function fetchOdds({ from, to } = {}) {
 // qa26 — Hub de fútbol (datos oficiales ESPN, solo lectura)
 export async function getHub(kind, comp, { fresh } = {}) {
   return get('hub', { kind, comp, ...(fresh ? { fresh: '1' } : {}) });
+}
+
+// qa33 — Agente IA de estadísticas. POST para no exponer la pregunta en la URL.
+export async function askStats(q) {
+  return post('hubAsk', { q });
 }

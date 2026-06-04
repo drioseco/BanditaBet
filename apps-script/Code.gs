@@ -155,6 +155,7 @@ function handle(action, p) {
       case 'fetchOdds':     return fetchOdds_(p);
       case 'clearSandbox':  return clearSandbox_();
       case 'hub':           return hub_(p);
+      case 'hubAsk':        return hubAsk_(p);
       default:             return { ok: false, error: 'unknown_action', got: action };
     }
   } catch (err) {
@@ -1358,6 +1359,136 @@ function hubBracket_(slug) {
 // confiable. Se implementa en F4 (probablemente vía core API / leaders).
 function hubScorers_(slug) {
   return { scorers: [], note: 'Goleadores aún no disponibles en esta fuente (pendiente F4).' };
+}
+
+// ── Agente IA de estadísticas (qa33) ─────────────────────────────────
+// Pregunta en lenguaje natural → Claude API con web search server-side →
+// respuesta + fuentes. La key vive en Script Properties (ANTHROPIC_API_KEY),
+// la carga el dueño. Controles de costo: caché de preguntas repetidas + tope
+// diario (la URL del Web App es pública).
+var AI_MODEL = 'claude-sonnet-4-6';   // calidad; bajar a 'claude-haiku-4-5' para abaratar
+var AI_MAX_TOKENS = 1024;
+var AI_ASK_TTL = 21600;               // 6h (tope de CacheService)
+var AI_DAILY_CAP = 80;                // consultas/día antes de cortar
+var AI_SYSTEM =
+  'Eres un experto en fútbol chileno y en las copas internacionales (Copa ' +
+  'Libertadores, Sudamericana, Recopa) y la selección chilena. Respondes en ' +
+  'español de Chile, de forma breve y con datos concretos (números, fechas, ' +
+  'nombres). USA SIEMPRE la herramienta de búsqueda web para verificar cifras, ' +
+  'goleadores históricos, fechas y resultados recientes antes de afirmar algo; ' +
+  'si no estás seguro, dilo explícitamente. Responde SOLO preguntas de fútbol: ' +
+  'si te preguntan otra cosa, declina cortésmente en una frase.';
+
+function hubAsk_(p) {
+  var q = ((p && p.q) || '').toString().trim();
+  if (!q) return { ok: false, error: 'empty_question' };
+  if (q.length > 500) q = q.slice(0, 500);
+
+  var key = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+  if (!key) {
+    return { ok: false, error: 'ai_not_configured',
+             hint: 'Setear ANTHROPIC_API_KEY en Apps Script → Configuración → Propiedades del script.' };
+  }
+
+  var cache = CacheService.getScriptCache();
+  var fresh = (p && (p.fresh === '1' || p.fresh === 'true' || p.fresh === true));
+  var qnorm = q.toLowerCase().replace(/\s+/g, ' ');
+  var cacheKey = 'hub:ask:' + Utilities.base64EncodeWebSafe(
+    Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, qnorm));
+  if (!fresh) {
+    var hit = cache.get(cacheKey);
+    if (hit) { try { var o = JSON.parse(hit); o.cached = true; return o; } catch (_) {} }
+  }
+
+  // Tope diario (anti-abuso si se filtra la URL)
+  var dayKey = 'hub:ask:count:' + Utilities.formatDate(new Date(), 'GMT', 'yyyyMMdd');
+  var used = parseInt(cache.get(dayKey) || '0', 10) || 0;
+  if (used >= AI_DAILY_CAP) {
+    return { ok: false, error: 'ai_daily_limit', hint: 'Límite diario de consultas alcanzado. Probá mañana.' };
+  }
+
+  var body = {
+    model: AI_MODEL,
+    max_tokens: AI_MAX_TOKENS,
+    system: [{ type: 'text', text: AI_SYSTEM, cache_control: { type: 'ephemeral' } }],
+    tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 5,
+              user_location: { type: 'approximate', country: 'CL' } }],
+    messages: [{ role: 'user', content: q }]
+  };
+
+  var result = aiCall_(key, body);
+  if (result.ok) {
+    try { cache.put(cacheKey, JSON.stringify(result), AI_ASK_TTL); } catch (_) {}
+    try { cache.put(dayKey, String(used + 1), 90000); } catch (_) {}
+  }
+  return result;
+}
+
+// Llamada a la Anthropic Messages API + parseo de texto y fuentes.
+// Maneja stop_reason 'pause_turn' (web search server-side larga) reanudando.
+function aiCall_(key, body) {
+  var url = 'https://api.anthropic.com/v1/messages';
+  var headers = { 'x-api-key': key, 'anthropic-version': '2023-06-01' };
+  var msgs = body.messages.slice();
+  var lastData = null;
+
+  for (var turn = 0; turn < 4; turn++) {
+    var payload = {
+      model: body.model, max_tokens: body.max_tokens,
+      system: body.system, tools: body.tools, messages: msgs
+    };
+    var res = UrlFetchApp.fetch(url, {
+      method: 'post', contentType: 'application/json',
+      headers: headers, payload: JSON.stringify(payload), muteHttpExceptions: true
+    });
+    var code = res.getResponseCode();
+    if (code !== 200) {
+      var detail = res.getContentText();
+      try { detail = JSON.parse(detail).error.message || detail; } catch (_) {}
+      return { ok: false, error: 'ai_http_' + code, detail: String(detail).slice(0, 300) };
+    }
+    try { lastData = JSON.parse(res.getContentText()); }
+    catch (e) { return { ok: false, error: 'ai_bad_json' }; }
+
+    if (lastData.stop_reason === 'pause_turn' && lastData.content) {
+      // Reanudar: re-enviar con el contenido del asistente adjunto.
+      msgs.push({ role: 'assistant', content: lastData.content });
+      continue;
+    }
+    break;
+  }
+
+  var parsed = aiParse_(lastData);
+  return { ok: true, answer: parsed.answer, sources: parsed.sources,
+           model: (lastData && lastData.model) || body.model, cached: false };
+}
+
+// Extrae el texto y las fuentes (de citations de los bloques text y de los
+// bloques web_search_tool_result) de la respuesta de la Messages API.
+function aiParse_(data) {
+  var answer = '';
+  var sources = [];
+  var seen = {};
+  function addSrc(url, title) {
+    if (!url || seen[url]) return;
+    seen[url] = true;
+    sources.push({ url: url, title: title || url });
+  }
+  var content = (data && data.content) || [];
+  for (var i = 0; i < content.length; i++) {
+    var b = content[i];
+    if (b.type === 'text') {
+      answer += b.text || '';
+      var cites = b.citations || [];
+      for (var c = 0; c < cites.length; c++) addSrc(cites[c].url, cites[c].title);
+    } else if (b.type === 'web_search_tool_result') {
+      var rc = b.content || [];
+      for (var r = 0; r < rc.length; r++) {
+        if (rc[r] && rc[r].type === 'web_search_result') addSrc(rc[r].url, rc[r].title);
+      }
+    }
+  }
+  return { answer: answer.trim(), sources: sources };
 }
 
 // ── Test desde el editor de Apps Script (clic "Run" en alguna) ─────
