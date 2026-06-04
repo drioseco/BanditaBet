@@ -98,9 +98,13 @@ codificado en `parseExpertoRow` y `colIndexes_('experto')`.
   (`hubAsk_` en Code.gs → `web_search_20260209`). Falta setear la key:
   Apps Script → Configuración del proyecto → Propiedades del script →
   `ANTHROPIC_API_KEY`. Sin ella devuelve `ai_not_configured`. **Es pago por uso.**
-  Controles: caché de preguntas repetidas (6h) + tope diario `AI_DAILY_CAP` (80).
-  Modelo en la constante `AI_MODEL` (`claude-sonnet-4-6`; bajar a `claude-haiku-4-5`
-  para abaratar). Es el primer endpoint que **escribe a una API externa de pago**.
+  Controles: caché rápido en memoria (6h) + **base permanente en la pestaña
+  `_AI_cache` del Sheet** (la IA marca cada respuesta `permanente`/`temporal` con
+  `[[VIGENCIA: ...]]`; solo las permanentes —ej. "quién ganó el Mundial 2014"— se
+  guardan para siempre y se responden gratis sin volver a la API) + tope diario
+  `AI_DAILY_CAP` (80). Modelo en `AI_MODEL` (`claude-sonnet-4-6`; bajar a
+  `claude-haiku-4-5` para abaratar). Es el primer endpoint que **escribe a una API
+  externa de pago**.
 - **Gestión abierta (qa30):** se eliminó el PIN de admin. Cualquiera de los 4
   puede cargar resultados / fixtures desde la app (ya no hay `assertAdmin_` ni
   `ADMIN_PIN`). Si en el futuro se quiere volver a proteger, ver el historial

@@ -1368,8 +1368,9 @@ function hubScorers_(slug) {
 // diario (la URL del Web App es pública).
 var AI_MODEL = 'claude-sonnet-4-6';   // calidad; bajar a 'claude-haiku-4-5' para abaratar
 var AI_MAX_TOKENS = 1024;
-var AI_ASK_TTL = 21600;               // 6h (tope de CacheService)
+var AI_ASK_TTL = 21600;               // 6h (caché temporal, tope de CacheService)
 var AI_DAILY_CAP = 80;                // consultas/día antes de cortar
+var AI_CACHE_SHEET = '_AI_cache';     // base permanente de respuestas atemporales
 var AI_SYSTEM =
   'Eres un experto en fútbol chileno y en las copas internacionales (Copa ' +
   'Libertadores, Sudamericana, Recopa) y la selección chilena. Respondes en ' +
@@ -1377,7 +1378,14 @@ var AI_SYSTEM =
   'nombres). USA SIEMPRE la herramienta de búsqueda web para verificar cifras, ' +
   'goleadores históricos, fechas y resultados recientes antes de afirmar algo; ' +
   'si no estás seguro, dilo explícitamente. Responde SOLO preguntas de fútbol: ' +
-  'si te preguntan otra cosa, declina cortésmente en una frase.';
+  'si te preguntan otra cosa, declina cortésmente en una frase.\n\n' +
+  'AL FINAL de tu respuesta agrega SIEMPRE, en una línea aparte, una etiqueta ' +
+  'que clasifique la respuesta:\n' +
+  '· `[[VIGENCIA: permanente]]` si es un hecho que no cambia con el tiempo ' +
+  '(p.ej. quién ganó un mundial, en qué año se fundó un club, un récord histórico).\n' +
+  '· `[[VIGENCIA: temporal]]` si la respuesta depende del momento actual y podría ' +
+  'cambiar (p.ej. goleador actual, tabla de posiciones, último partido, próximo rival).\n' +
+  'No menciones esta etiqueta en el texto de la respuesta; va solo al final.';
 
 function hubAsk_(p) {
   var q = ((p && p.q) || '').toString().trim();
@@ -1392,15 +1400,25 @@ function hubAsk_(p) {
 
   var cache = CacheService.getScriptCache();
   var fresh = (p && (p.fresh === '1' || p.fresh === 'true' || p.fresh === true));
-  var qnorm = q.toLowerCase().replace(/\s+/g, ' ');
-  var cacheKey = 'hub:ask:' + Utilities.base64EncodeWebSafe(
+  var qnorm = q.toLowerCase().replace(/\s+/g, ' ').trim();
+  var hash = Utilities.base64EncodeWebSafe(
     Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, qnorm));
+  var cacheKey = 'hub:ask:' + hash;
+
   if (!fresh) {
+    // 1) Capa rápida en memoria (6h) — cubre repetidos recientes (temporales incl.)
     var hit = cache.get(cacheKey);
     if (hit) { try { var o = JSON.parse(hit); o.cached = true; return o; } catch (_) {} }
+    // 2) Base permanente (Sheet) — respuestas atemporales guardadas para siempre
+    var dbHit = aiCacheGet_(hash);
+    if (dbHit) {
+      try { cache.put(cacheKey, JSON.stringify(dbHit), AI_ASK_TTL); } catch (_) {}
+      dbHit.cached = true; dbHit.source = 'db';
+      return dbHit;
+    }
   }
 
-  // Tope diario (anti-abuso si se filtra la URL)
+  // Tope diario (anti-abuso si se filtra la URL) — solo cuenta cuando vamos a la API
   var dayKey = 'hub:ask:count:' + Utilities.formatDate(new Date(), 'GMT', 'yyyyMMdd');
   var used = parseInt(cache.get(dayKey) || '0', 10) || 0;
   if (used >= AI_DAILY_CAP) {
@@ -1418,10 +1436,52 @@ function hubAsk_(p) {
 
   var result = aiCall_(key, body);
   if (result.ok) {
+    // Extraer la etiqueta de vigencia que pusimos en el system prompt y limpiarla.
+    var vig = 'temporal';
+    var m = (result.answer || '').match(/\[\[\s*VIGENCIA:\s*(permanente|temporal)\s*\]\]/i);
+    if (m) { vig = m[1].toLowerCase(); }
+    result.answer = (result.answer || '').replace(/\[\[\s*VIGENCIA:[^\]]*\]\]/ig, '').trim();
+    result.vigencia = vig;
+
     try { cache.put(cacheKey, JSON.stringify(result), AI_ASK_TTL); } catch (_) {}
     try { cache.put(dayKey, String(used + 1), 90000); } catch (_) {}
+    // Solo las atemporales van a la base permanente (la IA lo decidió).
+    if (vig === 'permanente') {
+      try { aiCachePut_(hash, q, result); } catch (_) {}
+    }
   }
   return result;
+}
+
+// ── Base permanente de respuestas (pestaña _AI_cache del Sheet) ───────
+// Columnas: hash | pregunta | respuesta | fuentes(JSON) | vigencia | creado
+function aiCacheSheet_(createIfMissing) {
+  var ss = SpreadsheetApp.getActive();
+  var sh = ss.getSheetByName(AI_CACHE_SHEET);
+  if (!sh && createIfMissing) {
+    sh = ss.insertSheet(AI_CACHE_SHEET);
+    sh.appendRow(['hash', 'pregunta', 'respuesta', 'fuentes', 'vigencia', 'creado']);
+  }
+  return sh;
+}
+function aiCacheGet_(hash) {
+  var sh = aiCacheSheet_(false);
+  if (!sh || sh.getLastRow() < 2) return null;
+  var rows = sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues();
+  for (var i = 0; i < rows.length; i++) {
+    if (rows[i][0] === hash) {
+      var sources = [];
+      try { sources = JSON.parse(rows[i][3] || '[]'); } catch (_) {}
+      return { ok: true, answer: rows[i][2], sources: sources, model: AI_MODEL, cached: true };
+    }
+  }
+  return null;
+}
+function aiCachePut_(hash, q, result) {
+  var sh = aiCacheSheet_(true);
+  if (aiCacheGet_(hash)) return; // ya existe
+  sh.appendRow([hash, q, result.answer, JSON.stringify(result.sources || []),
+                'permanente', new Date()]);
 }
 
 // Llamada a la Anthropic Messages API + parseo de texto y fuentes.
