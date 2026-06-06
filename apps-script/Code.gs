@@ -1489,17 +1489,27 @@ function aiCachePut_(hash, q, result) {
 // Dado un partido por jugarse → tarjeta de stats: último cruce, historial,
 // dato clave y mini-pronóstico. Mismo motor/caché que el agente. La clave de
 // caché incluye la fecha del partido, así cada fixture se guarda una vez.
+var AI_PREVIEW_VER = 'v2';  // subir si cambia el prompt → invalida cachés viejas
 var AI_PREVIEW_SYSTEM =
-  'Eres analista de fútbol chileno y de copas internacionales. Te doy un ' +
-  'partido PRÓXIMO a jugarse y armás una previa breve con datos REALES (usá la ' +
-  'búsqueda web para verificar). Respondé en español de Chile y devolvé EXACTAMENTE ' +
-  'estas cuatro líneas con etiquetas, cada una en UNA frase corta, sin texto extra ' +
-  'ni markdown:\n' +
+  'Eres analista de fútbol chileno y de copas internacionales. Te doy un partido ' +
+  'PRÓXIMO a jugarse y armás una previa breve y PRECISA en español de Chile. REGLAS:\n' +
+  '· Usá SIEMPRE la búsqueda web para verificar; preferí las fuentes MÁS RECIENTES ' +
+  '(del año en curso). No te fíes de tu memoria para nada que cambie.\n' +
+  '· Los planteles, técnicos y a veces de local cambian seguido. NO menciones a un ' +
+  'jugador como figura de un equipo salvo que CONFIRMES con la web que juega ' +
+  'actualmente en ese club esta temporada (ojo con traspasos al extranjero). Ante la ' +
+  'duda, omitilo y usá un dato histórico verificable (goleador histórico del club, el ' +
+  'H2H, o una racha reciente confirmada).\n' +
+  '· El primer equipo es el LOCAL. Solo nombrá el estadio si verificaste cuál es el ' +
+  'estadio que ese equipo usa de local; si no, NO menciones estadio.\n' +
+  '· Si un dato no se puede verificar, OMITILO en vez de inventarlo. Mejor decir menos ' +
+  'pero correcto.\n' +
+  'Devolvé EXACTAMENTE estas cuatro líneas con etiquetas, una frase corta cada una, ' +
+  'sin texto extra, sin markdown y SIN notas al final:\n' +
   '[[ULTIMO]] el último enfrentamiento entre ambos: fecha aproximada, marcador y quién ganó.\n' +
   '[[H2H]] el historial general (cuántos triunfos por lado o quién domina la rivalidad).\n' +
-  '[[CLAVE]] un dato o nombre clave (goleador, racha, baja importante, etc.).\n' +
-  '[[PRONOSTICO]] tu mini-pronóstico en una sola frase, con tono entretenido.\n' +
-  'No agregues nada fuera de esas etiquetas.';
+  '[[CLAVE]] un dato clave VERIFICABLE (goleador histórico, racha actual confirmada, etc.).\n' +
+  '[[PRONOSTICO]] tu mini-pronóstico en una sola frase, con tono entretenido.';
 
 function hubPreview_(p) {
   var home = ((p && p.home) || '').toString().trim();
@@ -1516,7 +1526,8 @@ function hubPreview_(p) {
 
   var cache = CacheService.getScriptCache();
   var fresh = (p && (p.fresh === '1' || p.fresh === 'true' || p.fresh === true));
-  var norm = ('preview|' + home + '|' + away + '|' + date).toLowerCase().replace(/\s+/g, ' ').trim();
+  var norm = ('preview|' + AI_PREVIEW_VER + '|' + home + '|' + away + '|' + date)
+    .toLowerCase().replace(/\s+/g, ' ').trim();
   var hash = Utilities.base64EncodeWebSafe(
     Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, norm));
   var cacheKey = 'hub:prev:' + hash;
@@ -1541,12 +1552,16 @@ function hubPreview_(p) {
     return { ok: false, error: 'ai_daily_limit', hint: 'Límite diario de consultas alcanzado. Probá mañana.' };
   }
 
+  var hoy = Utilities.formatDate(new Date(), 'America/Santiago', 'yyyy-MM-dd');
   var body = {
     model: AI_MODEL, max_tokens: AI_MAX_TOKENS,
     system: [{ type: 'text', text: AI_PREVIEW_SYSTEM, cache_control: { type: 'ephemeral' } }],
-    tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 5,
+    tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 6,
               user_location: { type: 'approximate', country: 'CL' } }],
-    messages: [{ role: 'user', content: 'Partido próximo: ' + home + ' vs ' + away + (comp ? ' — ' + comp : '') + '.' }]
+    messages: [{ role: 'user', content:
+      'Hoy es ' + hoy + '. Partido próximo de la temporada en curso: ' +
+      home + ' (LOCAL) vs ' + away + ' (visita)' + (comp ? ' — ' + comp : '') +
+      '. Verificá los datos actuales con la web antes de responder.' }]
   };
 
   var raw = aiCall_(key, body);
