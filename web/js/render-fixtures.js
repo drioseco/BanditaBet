@@ -2,12 +2,12 @@
 // Fixtures view — todos los partidos por torneo/jornada, con picks de
 // los 4 jugadores tipo ticket de cromo.
 // ════════════════════════════════════════════════════════════════════
-import { getState, setState, hasRes, hasPick, isFut, hoursUntil, mDate, TODAY } from './state.js?v=20260603qa35';
-import { CONFIG } from './config.js?v=20260603qa35';
-import { attachCountdown, toast } from './game-fx.js?v=20260603qa35';
-import { updateFactors as apiUpdateFactors } from './api.js?v=20260603qa35';
-import { teamShieldHTML } from './team-logos.js?v=20260603qa35';
-import { computeStandings, scopeMatches } from './render-home.js?v=20260603qa35';
+import { getState, setState, hasRes, hasPick, isFut, hoursUntil, mDate, TODAY } from './state.js?v=20260603qa36';
+import { CONFIG } from './config.js?v=20260603qa36';
+import { attachCountdown, toast } from './game-fx.js?v=20260603qa36';
+import { updateFactors as apiUpdateFactors, getPreview } from './api.js?v=20260603qa36';
+import { teamShieldHTML } from './team-logos.js?v=20260603qa36';
+import { computeStandings, scopeMatches } from './render-home.js?v=20260603qa36';
 
 // Un partido "tiene cuotas" sólo si Fac L, E y V están cargados y son > 0.
 function hasFactors(m) {
@@ -301,14 +301,80 @@ function buildFixtureCard(m, playerByName) {
     ${inds.length ? `<div class="fcard-inds">${inds.join('')}</div>` : ''}
     ${oddsHTML}
     ${factorsHTML}
-    <div class="fcard-picks">${pickCells}</div>`;
+    <div class="fcard-picks">${pickCells}</div>
+    ${!hr ? `<div class="fcard-prev-wrap">
+      <button class="fcard-prev-btn" type="button">🔮 Previa IA</button>
+      <div class="fcard-prev"></div>
+    </div>` : ''}`;
 
   if (showFactorsEditor) {
     const btn = card.querySelector('.fcf-save');
     btn.onclick = () => saveInlineFactors(m.id, card, btn);
   }
 
+  if (!hr) {
+    const pbtn = card.querySelector('.fcard-prev-btn');
+    if (pbtn) pbtn.onclick = () => loadPreview(m, card);
+  }
+
   return card;
+}
+
+// ── Previa IA de un partido próximo (qa36) ───────────────────────────
+async function loadPreview(m, card) {
+  const btn = card.querySelector('.fcard-prev-btn');
+  const out = card.querySelector('.fcard-prev');
+  if (btn.dataset.done) return;   // ya cargada
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Generando previa…';
+  out.innerHTML = `<div class="prev-loading"><span class="ask-spin"></span> Buscando datos…</div>`;
+  const { rounds } = getState();
+  const round = rounds.find(r => r.id === m.round_id);
+  const comp = m.competition_id === 'experto'
+    ? (round?.name || 'Copa internacional')
+    : 'Primera División de Chile';
+  try {
+    const r = await getPreview({ home: m.home_team, away: m.away_team, comp, date: m.match_date || '' });
+    if (!r || r.ok === false) {
+      const msg = r && r.error === 'ai_not_configured'
+        ? 'El agente IA no está configurado todavía.'
+        : r && r.error === 'ai_daily_limit'
+        ? 'Se alcanzó el límite de consultas por hoy.'
+        : `No se pudo generar la previa${r && r.detail ? ': ' + r.detail : '.'}`;
+      out.innerHTML = `<div class="prev-err">${msg}</div>`;
+      btn.disabled = false; btn.textContent = orig;
+      return;
+    }
+    out.innerHTML = previewCardHTML(r);
+    btn.dataset.done = '1';
+    btn.textContent = r.cached ? '🔮 Previa ·' + ' guardada' : '🔮 Previa';
+    btn.classList.add('done');
+  } catch (e) {
+    out.innerHTML = `<div class="prev-err">Error: ${e.message}</div>`;
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+function previewCardHTML(r) {
+  const esc = s => (s || '—').replace(/</g, '&lt;');
+  const rows = [
+    ['🕐', 'Último cruce', r.ultimo],
+    ['📊', 'Historial', r.h2h],
+    ['🎯', 'Dato clave', r.clave],
+    ['🔮', 'Pronóstico', r.pronostico],
+  ];
+  const srcs = (r.sources || []).slice(0, 4);
+  return `<div class="prev-card">
+    ${rows.map(([ic, t, v]) => `
+      <div class="prev-row">
+        <span class="prev-ic">${ic}</span>
+        <div class="prev-txt"><b>${t}:</b> ${esc(v)}</div>
+      </div>`).join('')}
+    ${srcs.length ? `<div class="prev-srcs">${srcs.map(s =>
+      `<a class="ask-src" href="${s.url}" target="_blank" rel="noopener">${(s.title || s.url).replace(/</g, '&lt;')}</a>`
+    ).join('')}</div>` : ''}
+  </div>`;
 }
 
 async function saveInlineFactors(matchId, card, btn) {

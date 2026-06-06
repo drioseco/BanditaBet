@@ -156,6 +156,7 @@ function handle(action, p) {
       case 'clearSandbox':  return clearSandbox_();
       case 'hub':           return hub_(p);
       case 'hubAsk':        return hubAsk_(p);
+      case 'hubPreview':    return hubPreview_(p);
       default:             return { ok: false, error: 'unknown_action', got: action };
     }
   } catch (err) {
@@ -1482,6 +1483,91 @@ function aiCachePut_(hash, q, result) {
   if (aiCacheGet_(hash)) return; // ya existe
   sh.appendRow([hash, q, result.answer, JSON.stringify(result.sources || []),
                 'permanente', new Date()]);
+}
+
+// ── Previa de partido próximo (qa36) ─────────────────────────────────
+// Dado un partido por jugarse → tarjeta de stats: último cruce, historial,
+// dato clave y mini-pronóstico. Mismo motor/caché que el agente. La clave de
+// caché incluye la fecha del partido, así cada fixture se guarda una vez.
+var AI_PREVIEW_SYSTEM =
+  'Eres analista de fútbol chileno y de copas internacionales. Te doy un ' +
+  'partido PRÓXIMO a jugarse y armás una previa breve con datos REALES (usá la ' +
+  'búsqueda web para verificar). Respondé en español de Chile y devolvé EXACTAMENTE ' +
+  'estas cuatro líneas con etiquetas, cada una en UNA frase corta, sin texto extra ' +
+  'ni markdown:\n' +
+  '[[ULTIMO]] el último enfrentamiento entre ambos: fecha aproximada, marcador y quién ganó.\n' +
+  '[[H2H]] el historial general (cuántos triunfos por lado o quién domina la rivalidad).\n' +
+  '[[CLAVE]] un dato o nombre clave (goleador, racha, baja importante, etc.).\n' +
+  '[[PRONOSTICO]] tu mini-pronóstico en una sola frase, con tono entretenido.\n' +
+  'No agregues nada fuera de esas etiquetas.';
+
+function hubPreview_(p) {
+  var home = ((p && p.home) || '').toString().trim();
+  var away = ((p && p.away) || '').toString().trim();
+  var comp = ((p && p.comp) || '').toString().trim();
+  var date = ((p && p.date) || '').toString().trim();
+  if (!home || !away) return { ok: false, error: 'missing_teams' };
+
+  var key = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+  if (!key) {
+    return { ok: false, error: 'ai_not_configured',
+             hint: 'Setear ANTHROPIC_API_KEY en Apps Script → Configuración → Propiedades del script.' };
+  }
+
+  var cache = CacheService.getScriptCache();
+  var fresh = (p && (p.fresh === '1' || p.fresh === 'true' || p.fresh === true));
+  var norm = ('preview|' + home + '|' + away + '|' + date).toLowerCase().replace(/\s+/g, ' ').trim();
+  var hash = Utilities.base64EncodeWebSafe(
+    Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, norm));
+  var cacheKey = 'hub:prev:' + hash;
+
+  if (!fresh) {
+    var hit = cache.get(cacheKey);
+    if (hit) { try { var o = JSON.parse(hit); o.cached = true; return o; } catch (_) {} }
+    var db = aiCacheGet_(hash);
+    if (db) {
+      var fc = {}; try { fc = JSON.parse(db.answer) || {}; } catch (_) {}
+      var resC = { ok: true, cached: true, source: 'db', home: home, away: away,
+                   ultimo: fc.ultimo || '', h2h: fc.h2h || '', clave: fc.clave || '',
+                   pronostico: fc.pronostico || '', sources: db.sources || [] };
+      try { cache.put(cacheKey, JSON.stringify(resC), AI_ASK_TTL); } catch (_) {}
+      return resC;
+    }
+  }
+
+  var dayKey = 'hub:ask:count:' + Utilities.formatDate(new Date(), 'GMT', 'yyyyMMdd');
+  var used = parseInt(cache.get(dayKey) || '0', 10) || 0;
+  if (used >= AI_DAILY_CAP) {
+    return { ok: false, error: 'ai_daily_limit', hint: 'Límite diario de consultas alcanzado. Probá mañana.' };
+  }
+
+  var body = {
+    model: AI_MODEL, max_tokens: AI_MAX_TOKENS,
+    system: [{ type: 'text', text: AI_PREVIEW_SYSTEM, cache_control: { type: 'ephemeral' } }],
+    tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 5,
+              user_location: { type: 'approximate', country: 'CL' } }],
+    messages: [{ role: 'user', content: 'Partido próximo: ' + home + ' vs ' + away + (comp ? ' — ' + comp : '') + '.' }]
+  };
+
+  var raw = aiCall_(key, body);
+  if (!raw.ok) return raw;
+  var f = aiPreviewParse_(raw.answer || '');
+  var res = { ok: true, cached: false, home: home, away: away,
+              ultimo: f.ultimo, h2h: f.h2h, clave: f.clave, pronostico: f.pronostico,
+              sources: raw.sources || [] };
+  try { cache.put(cacheKey, JSON.stringify(res), AI_ASK_TTL); } catch (_) {}
+  try { aiCachePut_(hash, norm, { answer: JSON.stringify(f), sources: raw.sources || [] }); } catch (_) {}
+  try { cache.put(dayKey, String(used + 1), 90000); } catch (_) {}
+  return res;
+}
+
+function aiPreviewParse_(t) {
+  function grab(tag) {
+    var re = new RegExp('\\[\\[\\s*' + tag + '\\s*\\]\\]([\\s\\S]*?)(?=\\[\\[|$)', 'i');
+    var m = t.match(re);
+    return m ? m[1].replace(/\s+/g, ' ').trim() : '';
+  }
+  return { ultimo: grab('ULTIMO'), h2h: grab('H2H'), clave: grab('CLAVE'), pronostico: grab('PRONOSTICO') };
 }
 
 // Llamada a la Anthropic Messages API + parseo de texto y fuentes.

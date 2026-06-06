@@ -3,8 +3,8 @@
 // Todos los POST son form-encoded para esquivar el CORS preflight.
 // Si CONFIG.API_URL no está configurada, fallback a /data/seed.json.
 // ════════════════════════════════════════════════════════════════════
-import { CONFIG, API } from './config.js?v=20260603qa35';
-import { getState, setState } from './state.js?v=20260603qa35';
+import { CONFIG, API } from './config.js?v=20260603qa36';
+import { getState, setState } from './state.js?v=20260603qa36';
 
 // ── (qa30) PIN de admin eliminado ───────────────────────────────────
 // Las acciones de Gestión ya no requieren PIN; postAdmin es un alias de post.
@@ -173,4 +173,9 @@ export async function getHub(kind, comp, { fresh } = {}) {
 // Timeout largo (90s): Claude + búsqueda web puede tardar bastante.
 export async function askStats(q) {
   return post('hubAsk', { q }, 90000);
+}
+
+// qa36 — Previa IA de un partido próximo (tarjeta de stats).
+export async function getPreview({ home, away, comp, date } = {}) {
+  return post('hubPreview', { home, away, comp: comp || '', date: date || '' }, 90000);
 }
