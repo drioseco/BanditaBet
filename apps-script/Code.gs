@@ -157,6 +157,7 @@ function handle(action, p) {
       case 'hub':           return hub_(p);
       case 'hubAsk':        return hubAsk_(p);
       case 'hubPreview':    return hubPreview_(p);
+      case 'hubImport':     return hubImport_(p);
       default:             return { ok: false, error: 'unknown_action', got: action };
     }
   } catch (err) {
@@ -1574,6 +1575,38 @@ function hubPreview_(p) {
   try { aiCachePut_(hash, norm, { answer: JSON.stringify(f), sources: raw.sources || [] }); } catch (_) {}
   try { cache.put(dayKey, String(used + 1), 90000); } catch (_) {}
   return res;
+}
+
+// Importa previas pre-generadas (sin llamar a la API de pago). Recibe
+// p.items = JSON [{home, away, date, ultimo, h2h, clave, pronostico, sources}].
+// Calcula el MISMO hash que hubPreview_ y las guarda en _AI_cache. Así se
+// pueden cargar previas hechas por fuera y los usuarios las ven gratis.
+function hubImport_(p) {
+  var items;
+  try { items = JSON.parse((p && p.items) || '[]'); } catch (e) { return { ok: false, error: 'bad_items' }; }
+  if (!items || !items.length) return { ok: false, error: 'no_items' };
+  var cache = CacheService.getScriptCache();
+  var imported = 0, skipped = 0;
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i] || {};
+    var home = (it.home || '').toString().trim();
+    var away = (it.away || '').toString().trim();
+    var date = (it.date || '').toString().trim();
+    if (!home || !away) { skipped++; continue; }
+    var norm = ('preview|' + AI_PREVIEW_VER + '|' + home + '|' + away + '|' + date)
+      .toLowerCase().replace(/\s+/g, ' ').trim();
+    var hash = Utilities.base64EncodeWebSafe(
+      Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, norm));
+    if (aiCacheGet_(hash)) { skipped++; continue; }   // ya existe
+    var f = { ultimo: it.ultimo || '', h2h: it.h2h || '', clave: it.clave || '', pronostico: it.pronostico || '' };
+    var sources = it.sources || [];
+    try { aiCachePut_(hash, norm, { answer: JSON.stringify(f), sources: sources }); } catch (_) {}
+    var res = { ok: true, cached: true, source: 'db', home: home, away: away,
+                ultimo: f.ultimo, h2h: f.h2h, clave: f.clave, pronostico: f.pronostico, sources: sources };
+    try { cache.put('hub:prev:' + hash, JSON.stringify(res), AI_ASK_TTL); } catch (_) {}
+    imported++;
+  }
+  return { ok: true, imported: imported, skipped: skipped, total: items.length };
 }
 
 function aiPreviewParse_(t) {
