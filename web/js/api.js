@@ -3,8 +3,8 @@
 // Todos los POST son form-encoded para esquivar el CORS preflight.
 // Si CONFIG.API_URL no está configurada, fallback a /data/seed.json.
 // ════════════════════════════════════════════════════════════════════
-import { CONFIG, API } from './config.js?v=20260603qa37';
-import { getState, setState } from './state.js?v=20260603qa37';
+import { CONFIG, API } from './config.js?v=20260606qa40';
+import { getState, setState } from './state.js?v=20260606qa40';
 
 // ── (qa30) PIN de admin eliminado ───────────────────────────────────
 // Las acciones de Gestión ya no requieren PIN; postAdmin es un alias de post.
@@ -180,4 +180,10 @@ export async function askStats(q) {
 // corta, el backend ya la cacheó y el siguiente intento es instantáneo.
 export async function getPreview({ home, away, comp, date } = {}) {
   return post('hubPreview', { home, away, comp: comp || '', date: date || '' }, 120000);
+}
+
+// qa40 — Modo VAR: override de un pick olvidado (anti-WO). El código secreto
+// (VAR_CODE) vive solo en el backend; viaja por POST, nunca por la URL.
+export async function varOverride({ code, player, matchId, home_score, away_score } = {}) {
+  return post('varOverride', { code, player, matchId, home_score, away_score });
 }

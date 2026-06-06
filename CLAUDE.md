@@ -109,6 +109,15 @@ codificado en `parseExpertoRow` y `colIndexes_('experto')`.
   puede cargar resultados / fixtures desde la app (ya no hay `assertAdmin_` ni
   `ADMIN_PIN`). Si en el futuro se quiere volver a proteger, ver el historial
   de qa23.
+- **📺 Modo VAR (qa40) — override de picks olvidados (anti-WO).** En Gestión hay
+  un panel "Modo VAR" que corrige un pick que se pasó a WO (no se cargó a tiempo)
+  **aunque el partido ya tenga resultado** — `savePicks_` bloquea picks de partidos
+  jugados, así que esto es la única vía. Acción backend `varOverride` (`varOverride_`
+  en Code.gs): escribe el pick saltando el candado y **recalcula puntos/estado de
+  ese jugador** (pleno/acierto/0). Solo Dari, vía constante **`VAR_CODE`** (default
+  `'bandita-var'`) que vive SOLO en Code.gs (editor/repo privado), nunca en el
+  frontend de Vercel. Cambiá el valor en la constante cuando quieras; la comparación
+  es case-insensitive. Si el código está mal → `var_denied` ("el VAR no te reconoce").
 - Hub: faltan fases F2 (calendario), F4 (goleadores). F1 (tablas) y F3/F5
   (eliminatorias + simulador) están vivas.
 

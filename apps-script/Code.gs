@@ -58,6 +58,13 @@ var SHEETS = {
 var PLAYERS = ['Dari', 'Kmi', 'Blopa', 'Pela'];
 var PLAYER_COLORS = { Dari: '#1E4FB8', Kmi: '#E8442C', Blopa: '#E8B33D', Pela: '#2E6B3A' };
 
+// ── (qa40) Modo VAR — override de picks olvidados (anti-WO) ──────────
+// Código secreto de Dari. Vive SOLO acá (en el editor / repo privado), nunca
+// en el frontend público de Vercel. Cambialo cuando quieras. La comparación
+// es case-insensitive y sin espacios. Sirve para corregir un pick que se pasó
+// a WO porque no se cargó a tiempo, aun cuando el partido ya tiene resultado.
+var VAR_CODE = 'bandita-var';
+
 // ── ESPN API (sandbox) ──────────────────────────────────────────────
 // Carga automática de resultados a una hoja aparte (_API_test). NO toca
 // las hojas de producción. Ver qa17/qa19.
@@ -158,6 +165,7 @@ function handle(action, p) {
       case 'hubAsk':        return hubAsk_(p);
       case 'hubPreview':    return hubPreview_(p);
       case 'hubImport':     return hubImport_(p);
+      case 'varOverride':   return varOverride_(p);
       default:             return { ok: false, error: 'unknown_action', got: action };
     }
   } catch (err) {
@@ -442,6 +450,72 @@ function setResult_(p) {
 
     invalidateStateCache_();   // qa29
     return { ok: true, matchId: matchId, home_score: hs, away_score: as_, result: resultLetter, result_factor: resultFactor };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ── varOverride_: Modo VAR — corrige un pick olvidado (qa40) ───────
+// Solo Dari (vía VAR_CODE). Escribe el pick de un jugador SALTANDO el candado
+// de "partido jugado" de savePicks_, y si el partido ya tiene resultado,
+// recalcula los puntos/estado de ESE jugador (anula el WO). No toca a los otros.
+function varOverride_(p) {
+  var given = String((p && p.code) || '').trim().toLowerCase();
+  if (!given || given !== String(VAR_CODE).trim().toLowerCase()) {
+    return { ok: false, error: 'var_denied' };
+  }
+  var playerName = p.player;
+  if (!playerName || PLAYERS.indexOf(playerName) < 0) return { ok: false, error: 'unknown_player' };
+  var matchId = p.matchId;
+  if (!matchId) return { ok: false, error: 'missing_matchId' };
+  var hs = parseInt(p.home_score, 10);
+  var as_ = parseInt(p.away_score, 10);
+  if (isNaN(hs) || isNaN(as_)) return { ok: false, error: 'invalid_score' };
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    var ss = SpreadsheetApp.getActive();
+    var loc = buildMatchIndex_(ss)[matchId];
+    if (!loc) return { ok: false, error: 'match_not_found' };
+    var sheet = ss.getSheetByName(SHEETS[loc.compId].name);
+
+    // 1) Escribir el pick (sin chequear isPlayed_ → ese es el punto del VAR).
+    SHEETS[loc.compId].writer(sheet, loc.row, playerName, hs, as_);
+
+    // 2) Si el partido ya tiene resultado, recalcular puntos/estado del jugador.
+    var row = sheet.getRange(loc.row, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var parsed = SHEETS[loc.compId].parser(row, loc.compId, loc.row - 1);
+    var IDX = colIndexes_(loc.compId);
+    var pts = null, st = null, recalced = false;
+    if (parsed && isPlayed_(parsed)) {
+      var rs = parsed.home_score, ra = parsed.away_score;
+      var resultLetter = rs > ra ? 'L' : rs < ra ? 'V' : 'E';
+      var rf = parsed.result_factor;
+      if (rf == null || isNaN(rf)) {
+        rf = resultLetter === 'L' ? parsed.factor_home :
+             resultLetter === 'V' ? parsed.factor_away : parsed.factor_draw;
+      }
+      pts = 0; st = ' ';
+      if (hs === rs && as_ === ra) {
+        pts = +(3 * (rf || 0)).toFixed(2); st = 'P';
+      } else {
+        var pr = hs > as_ ? 'L' : hs < as_ ? 'V' : 'E';
+        if (pr === resultLetter) { pts = +(rf || 0).toFixed(2); st = 'Ac'; }
+      }
+      sheet.getRange(loc.row, IDX.points[playerName] + 1).setValue(pts);
+      sheet.getRange(loc.row, IDX.statuses[playerName] + 1).setValue(st);
+      recalced = true;
+    }
+
+    invalidateStateCache_();
+    return {
+      ok: true, player: playerName, matchId: matchId,
+      home_score: hs, away_score: as_,
+      points: pts, status: st, recalced: recalced,
+      home_team: parsed ? parsed.home_team : null,
+      away_team: parsed ? parsed.away_team : null
+    };
   } finally {
     lock.releaseLock();
   }

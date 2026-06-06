@@ -2,8 +2,8 @@
 // Game FX · confetti, badges, countdowns, live pulse, toast, unlock
 // Todo lo que hace que esto se sienta juego y no dashboard.
 // ════════════════════════════════════════════════════════════════════
-import { CONFIG } from './config.js?v=20260603qa37';
-import { getState, hasRes } from './state.js?v=20260603qa37';
+import { CONFIG } from './config.js?v=20260606qa40';
+import { getState, hasRes } from './state.js?v=20260606qa40';
 
 // ── Confetti ────────────────────────────────────────────────────────
 const CONFETTI_THEMES = ['t-cobalt', 't-maroon', 't-pasto', 't-tomate', 't-rosa', 't-holo', ''];

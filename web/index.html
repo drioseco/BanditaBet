@@ -9,10 +9,10 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:wght@500;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Caveat:wght@500;700&display=swap">
 
 <!-- BB stylesheets -->
-<link rel="stylesheet" href="./css/tokens.css?v=20260603qa37">
-<link rel="stylesheet" href="./css/themes.css?v=20260603qa37">
-<link rel="stylesheet" href="./css/app.css?v=20260603qa37">
-<link rel="stylesheet" href="./css/game-fx.css?v=20260603qa37">
+<link rel="stylesheet" href="./css/tokens.css?v=20260606qa40">
+<link rel="stylesheet" href="./css/themes.css?v=20260606qa40">
+<link rel="stylesheet" href="./css/app.css?v=20260606qa40">
+<link rel="stylesheet" href="./css/game-fx.css?v=20260606qa40">
 
 <!-- Aplicar tema guardado antes del render para evitar flash -->
 <script>
@@ -249,6 +249,58 @@
       <button class="btn-a" id="btn-update-factors">★ Actualizar cuotas</button>
     </div>
 
+    <div class="acard var-card" style="grid-column:1/-1" id="var-card">
+      <div class="atitle">📺 Modo VAR <span class="var-tag">corrección de picks · anti-WO</span></div>
+
+      <div id="var-lock" class="var-lock">
+        <div class="var-lock-msg">🔒 Consola reservada al árbitro principal. Ingresá el código para revisar la jugada.</div>
+        <div class="frow2">
+          <input type="password" class="fi" id="var-code" placeholder="Código VAR" autocomplete="off">
+          <button class="btn-a" id="btn-var-unlock">Entrar al VAR</button>
+        </div>
+        <div id="var-lock-err" class="var-lock-err"></div>
+      </div>
+
+      <div id="var-panel" class="var-panel hidden">
+        <div class="sync-help">
+          Corregí un pick que se pasó a <strong>WO</strong> porque no se cargó a tiempo.
+          Elegí partido, jugador y el marcador que predijo: el VAR escribe el pick aunque
+          el partido ya tenga resultado y <strong>recalcula los puntos al toque</strong>.
+        </div>
+        <div class="fg"><label class="fl2">Torneo</label>
+          <select class="fi" id="v-sheet">
+            <option value="liga">Liga de Primera</option>
+            <option value="experto">Partidos Experto</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl2">Jornada</label>
+          <select class="fi" id="v-round"><option value="">— elegí jornada —</option></select>
+        </div>
+        <div class="fg"><label class="fl2">Partido</label>
+          <div class="match-picker" id="v-match-list"><div class="mp-empty">Elegí una jornada arriba</div></div>
+          <input type="hidden" id="v-match">
+        </div>
+        <div class="fg"><label class="fl2">Jugador</label>
+          <select class="fi" id="v-player">
+            <option value="">— elegí jugador —</option>
+            <option value="Dari">Dari</option>
+            <option value="Kmi">Kmi</option>
+            <option value="Blopa">Blopa</option>
+            <option value="Pela">Pela</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl2">Pick del jugador (lo que predijo)</label>
+          <div class="frow2">
+            <input type="number" class="fi" id="v-hs" placeholder="Local" min="0">
+            <div class="vsep2">—</div>
+            <input type="number" class="fi" id="v-as" placeholder="Visita" min="0">
+          </div>
+        </div>
+        <button class="btn-a" id="btn-var-apply">🟥 Revisar en el VAR</button>
+        <div id="v-result" class="var-result"></div>
+      </div>
+    </div>
+
     <div class="acard" style="grid-column:1/-1">
       <div class="atitle">🎯 Importar cuotas (propuesta · Fac L/E/V)</div>
       <div class="sync-help">
@@ -379,7 +431,7 @@
 </script>
 
 <!-- App (ES modules) -->
-<script type="module" src="./js/app.js?v=20260603qa37"></script>
+<script type="module" src="./js/app.js?v=20260606qa40"></script>
 
 </body>
 </html>

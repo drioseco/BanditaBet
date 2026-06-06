@@ -1,7 +1,7 @@
 // Admin view — cargar resultados, agregar fixtures, info de sync.
-import { getState, setState } from './state.js?v=20260603qa37';
-import { setMatchResult, addMatch as apiAddMatch, updateFactors as apiUpdateFactors, fetchResults as apiFetchResults, fetchOdds as apiFetchOdds, clearSandbox as apiClearSandbox, refreshSyncStatus } from './api.js?v=20260603qa37';
-import { toast, fireConfetti } from './game-fx.js?v=20260603qa37';
+import { getState, setState } from './state.js?v=20260606qa40';
+import { setMatchResult, addMatch as apiAddMatch, updateFactors as apiUpdateFactors, fetchResults as apiFetchResults, fetchOdds as apiFetchOdds, clearSandbox as apiClearSandbox, refreshSyncStatus, varOverride as apiVarOverride } from './api.js?v=20260606qa40';
+import { toast, fireConfetti } from './game-fx.js?v=20260606qa40';
 
 // (qa30) PIN de admin eliminado: Gestión abierta, sin prompt.
 async function handleAdminError(e) {
@@ -12,6 +12,7 @@ async function handleAdminError(e) {
 export function renderAdmin() {
   fillRoundSel('a');
   fillRoundSel('f');
+  fillRoundSel('v');
   refreshSyncStatus();
 
   const helpEl = document.getElementById('sync-help-info');
@@ -35,6 +36,13 @@ export function renderAdmin() {
     document.getElementById('btn-fetch-results').onclick = importResultsHandler;
     document.getElementById('btn-clear-sandbox').onclick = clearSandboxHandler;
     document.getElementById('btn-fetch-odds').onclick = fetchOddsHandler;
+    // qa40 — Modo VAR
+    document.getElementById('v-sheet').onchange = () => { fillRoundSel('v'); clearMatchList('v'); };
+    document.getElementById('v-round').onchange = () => fillMatchList('v');
+    document.getElementById('v-player').onchange = prefillVarPick;
+    document.getElementById('btn-var-unlock').onclick = varUnlock;
+    document.getElementById('var-code').onkeydown = (e) => { if (e.key === 'Enter') varUnlock(); };
+    document.getElementById('btn-var-apply').onclick = varApply;
     renderAdmin._wired = true;
   }
 }
@@ -302,11 +310,106 @@ function selectMatch(prefix, matchId) {
     document.getElementById('a-hs').value = m.home_score ?? '';
     document.getElementById('a-as').value = m.away_score ?? '';
     document.getElementById('a-factor').value = '';
-  } else {
+  } else if (prefix === 'f') {
     document.getElementById('f-fl').value = m.factor_home ?? '';
     document.getElementById('f-fe').value = m.factor_draw ?? '';
     document.getElementById('f-fv').value = m.factor_away ?? '';
+  } else if (prefix === 'v') {
+    prefillVarPick();
   }
+}
+
+// ── qa40 · Modo VAR ────────────────────────────────────────────────
+// Desbloqueo: NO valida acá (el código vive solo en el backend). Abre el panel
+// y deja que el backend rechace si el código está mal (mensaje divertido).
+function varUnlock() {
+  const code = document.getElementById('var-code').value.trim();
+  const errEl = document.getElementById('var-lock-err');
+  if (!code) { errEl.textContent = 'Escribí el código, árbitro.'; return; }
+  errEl.textContent = '';
+  document.getElementById('var-lock').classList.add('hidden');
+  document.getElementById('var-panel').classList.remove('hidden');
+  fillRoundSel('v');
+}
+
+// Prefill del marcador con el pick actual del jugador (si tiene), para editar.
+function prefillVarPick() {
+  const matchId = document.getElementById('v-match').value;
+  const playerName = document.getElementById('v-player').value;
+  if (!matchId || !playerName) return;
+  const { players, picks } = getState();
+  const pl = players.find(p => p.name === playerName);
+  if (!pl) return;
+  const pk = picks.find(x => x.match_id === matchId && x.player_id === pl.id);
+  document.getElementById('v-hs').value = pk && pk.home_score != null ? pk.home_score : '';
+  document.getElementById('v-as').value = pk && pk.away_score != null ? pk.away_score : '';
+}
+
+async function varApply() {
+  const code = document.getElementById('var-code').value.trim();
+  const matchId = document.getElementById('v-match').value;
+  const player = document.getElementById('v-player').value;
+  const home_score = parseInt(document.getElementById('v-hs').value, 10);
+  const away_score = parseInt(document.getElementById('v-as').value, 10);
+  const resEl = document.getElementById('v-result');
+  const m = getState().matches.find(x => x.id === matchId);
+
+  if (!matchId) { toast('Elegí el partido', 'err'); return; }
+  if (!player)  { toast('Elegí el jugador', 'err'); return; }
+  if (isNaN(home_score) || isNaN(away_score)) { toast('Ingresá el pick (marcador)', 'err'); return; }
+
+  const btn = document.getElementById('btn-var-apply');
+  btn.disabled = true;
+  resEl.className = 'var-result on var-checking';
+  resEl.innerHTML = '📺 <strong>Revisando la jugada…</strong><div class="var-bar"><i></i></div>';
+
+  try {
+    const res = await apiVarOverride({ code, player, matchId, home_score, away_score });
+    if (!res.ok) {
+      if (res.error === 'var_denied') {
+        resEl.className = 'var-result on var-no';
+        resEl.innerHTML = '🟥 <strong>El VAR no te reconoce.</strong> Código incorrecto, impostor.';
+        // re-bloquear: el código está mal
+        setTimeout(() => {
+          document.getElementById('var-panel').classList.add('hidden');
+          document.getElementById('var-lock').classList.remove('hidden');
+          document.getElementById('var-lock-err').textContent = '🟥 Código incorrecto.';
+          document.getElementById('var-code').value = '';
+        }, 1600);
+        return;
+      }
+      throw new Error(res.error || 'var_error');
+    }
+
+    // éxito → merge optimista del pick en state y refresco
+    const ptsTxt = res.recalced
+      ? (res.status === 'P' ? `PLENO · +${res.points} pts` : res.status === 'Ac' ? `acierto · +${res.points} pts` : `sin acierto · ${res.points} pts`)
+      : 'pick guardado (el partido aún no tiene resultado)';
+    resEl.className = 'var-result on var-ok';
+    resEl.innerHTML = `✅ <strong>WO ANULADO</strong> · ${player} ${home_score}−${away_score} en ${m ? m.home_team + ' vs ' + m.away_team : 'el partido'}<br><span class="var-pts">${ptsTxt}</span>`;
+    fireConfetti({ count: 60 });
+    toast(`📺 VAR: ${player} ${home_score}−${away_score} convalidado`);
+
+    mergeVarPick(matchId, player, home_score, away_score, res);
+  } catch (e) {
+    resEl.className = 'var-result on var-no';
+    resEl.innerHTML = '⚠️ Error: ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// Merge optimista: inserta/actualiza el pick en state.picks para que la tabla y
+// las vistas reflejen el cambio sin esperar al próximo fetch de state.
+function mergeVarPick(matchId, playerName, hs, as_, res) {
+  const st = getState();
+  const pl = (st.players || []).find(p => p.name === playerName);
+  if (!pl) return;
+  const picks = (st.picks || []).slice();
+  const idx = picks.findIndex(x => x.match_id === matchId && x.player_id === pl.id);
+  const entry = { match_id: matchId, player_id: pl.id, home_score: hs, away_score: as_ };
+  if (idx >= 0) picks[idx] = { ...picks[idx], ...entry }; else picks.push(entry);
+  setState({ picks });
 }
 
 function mHasFactors(m) {
