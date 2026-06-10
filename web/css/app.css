@@ -618,6 +618,9 @@ body {
   transition: all var(--bb-medium); font-weight: 700;
 }
 .sc-in:focus { box-shadow: inset 0 0 0 2px var(--bb-ink); background: rgba(255,255,255,.7); }
+/* qa42 — el placeholder L/V se mostraba gigante (1.35rem) y se confundía con un
+   valor cargado; lo bajamos a un hint chico y tenue. El número tipeado sigue grande. */
+.sc-in::placeholder { font-size: .62rem; font-weight: 700; letter-spacing: 1px; color: rgba(31,26,46,.3); }
 .vsep { text-align: center; color: rgba(31,26,46,.28); font-size: .8rem; font-family: var(--bb-mono); }
 .pc-fac {
   margin-top: .4rem; font-family: var(--bb-mono); font-size: .58rem;

@@ -2,12 +2,12 @@
 // Fixtures view — todos los partidos por torneo/jornada, con picks de
 // los 4 jugadores tipo ticket de cromo.
 // ════════════════════════════════════════════════════════════════════
-import { getState, setState, hasRes, hasPick, isFut, hoursUntil, mDate, TODAY } from './state.js?v=20260607qa41';
-import { CONFIG } from './config.js?v=20260607qa41';
-import { attachCountdown, toast } from './game-fx.js?v=20260607qa41';
-import { updateFactors as apiUpdateFactors, getPreview } from './api.js?v=20260607qa41';
-import { teamShieldHTML } from './team-logos.js?v=20260607qa41';
-import { computeStandings, scopeMatches } from './render-home.js?v=20260607qa41';
+import { getState, setState, hasRes, hasPick, isFut, hoursUntil, mDate, TODAY } from './state.js?v=20260607qa42';
+import { CONFIG } from './config.js?v=20260607qa42';
+import { attachCountdown, toast } from './game-fx.js?v=20260607qa42';
+import { updateFactors as apiUpdateFactors, getPreview } from './api.js?v=20260607qa42';
+import { teamShieldHTML } from './team-logos.js?v=20260607qa42';
+import { computeStandings, scopeMatches } from './render-home.js?v=20260607qa42';
 
 // Un partido "tiene cuotas" sólo si Fac L, E y V están cargados y son > 0.
 function hasFactors(m) {
@@ -114,8 +114,11 @@ export function renderFixtures() {
       () => { setState({ currentRound: 'all' }); renderFixtures(); });
     ff.appendChild(all);
     for (const j of jornadas) {
-      ff.appendChild(makeFilter(j, currentRound === j,
-        () => { setState({ currentRound: j }); renderFixtures(); }));
+      // qa42 — chip compacto: "Fecha 15" -> "15" para no armar un muro de 30
+      // chips anchos. El nombre completo queda en el title y en el header del grupo.
+      const short = j.replace(/^Fecha\s*/i, '').trim() || j;
+      ff.appendChild(makeFilter(short, currentRound === j,
+        () => { setState({ currentRound: j }); renderFixtures(); }, j));
     }
     const sortBtn = document.createElement('button');
     sortBtn.className = 'ft ft-sort';
@@ -166,10 +169,11 @@ export function renderFixtures() {
   }
 }
 
-function makeFilter(label, on, onClick) {
+function makeFilter(label, on, onClick, title) {
   const b = document.createElement('button');
   b.className = 'ft' + (on ? ' on' : '');
   b.textContent = label;
+  if (title) b.title = title;
   b.onclick = onClick;
   return b;
 }
@@ -218,7 +222,9 @@ function buildFixtureCard(m, playerByName) {
     scoreHTML = `<div class="score-cap">${m.home_score}−${m.away_score}</div>
       <div class="score-sub">FT · fac ${m.result_factor != null ? Number(m.result_factor).toFixed(2) : '—'}</div>`;
   } else {
-    scoreHTML = `<div class="score-cap pending">${ds}</div><div class="score-sub">${fut ? 'próximo' : 'pendiente'}</div>`;
+    // La fecha ya va en .fcard-date (izquierda); en el centro mostramos el
+    // separador del cruce para no duplicarla (qa42).
+    scoreHTML = `<div class="score-cap pending">vs</div><div class="score-sub">${fut ? 'próximo' : 'pendiente'}</div>`;
   }
 
   const pickCells = PLAYERS.map(name => {

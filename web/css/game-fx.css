@@ -2403,7 +2403,8 @@
 .hub-c-pts { font-weight: 700; }
 .hub-table thead .hub-c-pts { opacity: .8; }
 .hub-crest { width: 18px; height: 18px; object-fit: contain; vertical-align: middle; margin-right: 7px; }
-.hub-crest-empty { display: inline-block; }
+/* qa42 — sin escudo no reservamos el hueco de 25px; el nombre va pegado al # */
+.hub-crest-empty { display: none; }
 .hub-team-name { font-family: var(--bb-modern, var(--bb-mono)); font-size: .82rem; }
 /* primer puesto destacado */
 .hub-table tbody tr:first-child .hub-c-pos { color: var(--bb-maroon); font-weight: 700; }
