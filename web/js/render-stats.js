@@ -3,8 +3,8 @@
 // sparkline, calendario heatmap, H2H, gemelos/rivales, tendencias L/E/V,
 // marcadores favoritos, liga vs experto, premios raros, WO.
 // ════════════════════════════════════════════════════════════════════
-import { getState, hasRes } from './state.js?v=20260607qa42';
-import { teamShieldHTML } from './team-logos.js?v=20260607qa42';
+import { getState, hasRes } from './state.js?v=20260607qa43';
+import { teamShieldHTML } from './team-logos.js?v=20260607qa43';
 
 // ╔════════════════════════════════════════════════════════════════╗
 // ║  DATA — un solo paso por matches/picks; el resto consume        ║
@@ -534,9 +534,84 @@ function renderWO(s, root) {
 // ║  ORCHESTRATOR                                                    ║
 // ╚════════════════════════════════════════════════════════════════╝
 
+// qa43 — "Los cromos de la temporada": una lámina foil tipo cromo Panini por
+// jugador. Frente = personaje + foil holográfico + apodo; al tocar gira en 3D
+// y muestra la ficha técnica (reverso). Apodo y frase salen de los stats reales.
+function renderCromos(s, root) {
+  const arr = Object.values(s.perPlayer)
+    .map(ps => ({
+      name: ps.player.name,
+      color: ps.player.color || '#E8B33D',
+      avatar: ps.player.avatar_url || ('/img/characters/' + ps.player.name.toLowerCase() + '.png'),
+      pts: Math.round(ps.points),
+      P: ps.plenos, Ac: ps.aciertos, WO: ps.wo, pj: ps.pj,
+      ef: ps.pj ? Math.round((ps.plenos + ps.aciertos) / ps.pj * 100) : 0,
+    }))
+    .sort((a, b) => b.pts - a.pts);
+  arr.forEach((p, i) => { p.rank = i + 1; });
+  if (!arr.length) { root.innerHTML = ''; return; }
+
+  const maxP = Math.max(...arr.map(p => p.P));
+  const maxWO = Math.max(...arr.map(p => p.WO));
+  const minWO = Math.min(...arr.map(p => p.WO));
+  const rar = p => p.rank === 1 ? { t: 'PUNTERO', i: '★' }
+    : p.P === maxP ? { t: 'EL PROFETA', i: '🔮' }
+    : p.WO === maxWO ? { t: 'EL BARDO', i: '☠️' }
+    : p.WO === minWO ? { t: 'EL CUMPLIDOR', i: '🎯' }
+    : { t: 'EL CONSTANTE', i: '⚙️' };
+  const quote = p => p.rank === 1 ? 'Manda y no afloja.'
+    : p.P === maxP ? 'Ve goles donde nadie los ve.'
+    : p.WO === maxWO ? 'El rey del “se me pasó”.'
+    : p.WO === minWO ? 'Nunca falta a la cita.'
+    : 'Constante, siempre ahí.';
+
+  const card = p => {
+    const r = rar(p);
+    return `
+    <div class="cromo" style="--cc:${p.color}">
+      <div class="cromo-inner">
+        <div class="cromo-face cromo-front">
+          <div class="cromo-photo">
+            <img src="${p.avatar}" alt="${p.name}" loading="lazy" onerror="this.style.display='none'">
+            <span class="cromo-foil">★ FOIL ★</span><span class="cromo-num">${p.rank}</span>
+            <span class="cromo-rar">${r.i} ${r.t}</span>
+          </div>
+          <div class="cromo-fbody">
+            <div class="cromo-name">${p.name}</div>
+            <div class="cromo-pts">${p.pts}<small>PTS TEMPORADA</small></div>
+            <div class="cromo-hint">▣ tocá para la ficha</div>
+          </div>
+        </div>
+        <div class="cromo-face cromo-back">
+          <div class="cromo-back-hd"><b>${p.name}</b><span>FICHA · #${p.rank}</span></div>
+          <div class="cromo-brows">
+            <div class="cromo-brow"><span>Puntos</span><b>${p.pts}</b></div>
+            <div class="cromo-brow"><span>Plenos</span><b>${p.P}</b></div>
+            <div class="cromo-brow"><span>Aciertos</span><b>${p.Ac}</b></div>
+            <div class="cromo-brow"><span>Efectividad</span><b>${p.ef}%</b></div>
+            <div class="cromo-brow"><span>WO</span><b>${p.WO}</b></div>
+          </div>
+          <div class="cromo-quote">“${quote(p)}”</div>
+          <div class="cromo-back-foot">↩ tocá para volver</div>
+        </div>
+      </div>
+    </div>`;
+  };
+
+  root.innerHTML = `
+    <div class="sdiv"><div class="sdiv-line"></div><div class="sdiv-txt">Los cromos de la temporada</div><div class="sdiv-line"></div></div>
+    <div class="cromo-row">${arr.map(card).join('')}</div>`;
+  const row = root.querySelector('.cromo-row');
+  if (row) row.addEventListener('click', e => {
+    const c = e.target.closest('.cromo');
+    if (c) c.classList.toggle('flipped');
+  });
+}
+
 export function renderStats() {
   const s = computeAllStats();
   const blocks = [
+    ['stat-cromos',      renderCromos],
     ['stat-hero',        renderHero],
     ['stat-awards',      renderAwards],
     ['stat-evolution',   renderEvolution],
