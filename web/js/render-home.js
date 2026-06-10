@@ -2,9 +2,9 @@
 // Home view — leaderboard, title race, narrative feed, próximos picks,
 // últimos resultados.
 // ════════════════════════════════════════════════════════════════════
-import { getState, setState, hasRes, hasPick, isFut, h2r, mDate, TODAY, hoursUntil, fmtPts } from './state.js?v=20260607qa43';
-import { CONFIG } from './config.js?v=20260607qa43';
-import { renderBadge, computeBadgesFor, computeXPFor, LEVEL_DEFS, computeMissionsFor } from './game-fx.js?v=20260607qa43';
+import { getState, setState, hasRes, hasPick, isFut, h2r, mDate, TODAY, hoursUntil, fmtPts, escapeHtml as esc } from './state.js?v=20260607qa44';
+import { CONFIG } from './config.js?v=20260607qa44';
+import { renderBadge, computeBadgesFor, computeXPFor, LEVEL_DEFS, computeMissionsFor } from './game-fx.js?v=20260607qa44';
 
 const PLAYERS = CONFIG.PLAYERS;
 
@@ -434,9 +434,9 @@ function renderAlbum() {
         return `
           <div class="album-match">
             <div class="album-match-hdr">
-              <span class="album-team">${m.home_team}</span>
+              <span class="album-team">${esc(m.home_team)}</span>
               <span class="album-result"><b>${m.home_score}</b><small>—</small><b>${m.away_score}</b></span>
-              <span class="album-team album-team-right">${m.away_team}</span>
+              <span class="album-team album-team-right">${esc(m.away_team)}</span>
             </div>
             <div class="album-stickers">${stickers}</div>
           </div>`;
@@ -575,7 +575,7 @@ function renderCronicaAuto() {
       return `<div class="ca-cell ${cls}" style="${isP ? `border-top-color:${p.color}` : ''}" title="${p.name} · ${pk.home_score}–${pk.away_score}">${lbl}</div>`;
     }).join('');
     return `<div class="ca-match-row">
-      <div class="ca-match-name">${m.home_team} <span class="ca-score-final">${m.home_score}–${m.away_score}</span> ${m.away_team}</div>
+      <div class="ca-match-name">${esc(m.home_team)} <span class="ca-score-final">${m.home_score}–${m.away_score}</span> ${esc(m.away_team)}</div>
       <div class="ca-cells">${cells}</div>
     </div>`;
   }).join('');
@@ -607,7 +607,7 @@ function renderCronicaAuto() {
       <div class="ca-highlight-body">
         <span style="color:${topPick.player.color};font-family:var(--bb-display);font-style:italic">${topPick.player.name}</span>
         clavó <strong>${topPick.pick.home_score}–${topPick.pick.away_score}</strong>
-        en ${topPick.match.home_team} vs ${topPick.match.away_team}.
+        en ${esc(topPick.match.home_team)} vs ${esc(topPick.match.away_team)}.
         Cuota ${topPick.match.result_factor ?? '—'} → <strong style="color:var(--bb-maroon)">+${topPick.pts} pts</strong>.
       </div>
     </div>` : '';
@@ -924,7 +924,7 @@ function renderPendingPicks() {
     return `<div class="pp-row ${urgCls}">
       <div class="pp-match pp-nav" style="cursor:pointer" ${rowNav}>
         ${badge}
-        <span class="pp-teams">${m.home_team} vs ${m.away_team}</span>
+        <span class="pp-teams">${esc(m.home_team)} vs ${esc(m.away_team)}</span>
         <span class="pp-date">${dateStr}</span>
       </div>
       <div class="pp-cells">${cells}</div>

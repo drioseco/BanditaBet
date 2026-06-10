@@ -1,11 +1,11 @@
 // ════════════════════════════════════════════════════════════════════
 // Picks view — carga/edita picks del jugador seleccionado en localStorage.
 // ════════════════════════════════════════════════════════════════════
-import { getState, setState, hasRes, hoursUntil, mDate, TODAY } from './state.js?v=20260607qa43';
-import { CONFIG } from './config.js?v=20260607qa43';
-import { savePicks } from './api.js?v=20260607qa43';
-import { fireConfetti, toast } from './game-fx.js?v=20260607qa43';
-import { teamShieldHTML } from './team-logos.js?v=20260607qa43';
+import { getState, setState, hasRes, hoursUntil, mDate, TODAY, escapeHtml as esc } from './state.js?v=20260607qa44';
+import { CONFIG } from './config.js?v=20260607qa44';
+import { savePicks } from './api.js?v=20260607qa44';
+import { fireConfetti, toast } from './game-fx.js?v=20260607qa44';
+import { teamShieldHTML } from './team-logos.js?v=20260607qa44';
 
 const draft = {};   // { match_id: { home_score, away_score } }
 
@@ -94,7 +94,7 @@ function pickCardHTML(m, player, urgent) {
   const c = player.color;
   return `<div class="pcard${urgent ? ' urgent' : ''}">
     <div class="pc-hdr">
-      <div class="pc-match">${teamShieldHTML(m.home_team, 'sm')}${m.home_team} <span style="color:rgba(31,26,46,.28)">vs</span> ${m.away_team}${teamShieldHTML(m.away_team, 'sm')}</div>
+      <div class="pc-match">${teamShieldHTML(m.home_team, 'sm')}${esc(m.home_team)} <span style="color:rgba(31,26,46,.28)">vs</span> ${esc(m.away_team)}${teamShieldHTML(m.away_team, 'sm')}</div>
       <div class="pc-meta">${ds}${dl}</div>
     </div>
     <div class="pscores">

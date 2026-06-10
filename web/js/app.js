@@ -1,18 +1,18 @@
 // ════════════════════════════════════════════════════════════════════
 // Entry point del frontend — nav, bootstrap, re-render.
 // ════════════════════════════════════════════════════════════════════
-import { CONFIG } from './config.js?v=20260607qa43';
-import { getState, setState, subscribe } from './state.js?v=20260607qa43';
-import { bootstrapState, refreshSyncStatus, primeFromCache } from './api.js?v=20260607qa43';
-import { getActivePlayer, setActivePlayer } from './auth.js?v=20260607qa43';
-import { renderHome, renderScopeChips, renderStandings } from './render-home.js?v=20260607qa43';
-import { renderFixtures } from './render-fixtures.js?v=20260607qa43';
-import { renderPicks }    from './render-picks.js?v=20260607qa43';
-import { renderStats }    from './render-stats.js?v=20260607qa43';
-import { renderAdmin }    from './render-admin.js?v=20260607qa43';
-import { renderHub }      from './render-hub.js?v=20260607qa43';
-import { toast, renderSyncPill, renderLivePill } from './game-fx.js?v=20260607qa43';
-import { loadTeamLogos } from './team-logos.js?v=20260607qa43';
+import { CONFIG } from './config.js?v=20260607qa44';
+import { getState, setState, subscribe } from './state.js?v=20260607qa44';
+import { bootstrapState, refreshSyncStatus, primeFromCache } from './api.js?v=20260607qa44';
+import { getActivePlayer, setActivePlayer } from './auth.js?v=20260607qa44';
+import { renderHome, renderScopeChips, renderStandings } from './render-home.js?v=20260607qa44';
+import { renderFixtures } from './render-fixtures.js?v=20260607qa44';
+import { renderPicks }    from './render-picks.js?v=20260607qa44';
+import { renderStats }    from './render-stats.js?v=20260607qa44';
+import { renderAdmin }    from './render-admin.js?v=20260607qa44';
+import { renderHub }      from './render-hub.js?v=20260607qa44';
+import { toast, renderSyncPill, renderLivePill } from './game-fx.js?v=20260607qa44';
+import { loadTeamLogos } from './team-logos.js?v=20260607qa44';
 
 const VIEWS = ['home', 'fixtures', 'picks', 'stats', 'hub', 'admin'];
 

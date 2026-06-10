@@ -1,7 +1,7 @@
 // Admin view — cargar resultados, agregar fixtures, info de sync.
-import { getState, setState } from './state.js?v=20260607qa43';
-import { setMatchResult, addMatch as apiAddMatch, updateFactors as apiUpdateFactors, fetchResults as apiFetchResults, fetchOdds as apiFetchOdds, clearSandbox as apiClearSandbox, refreshSyncStatus, varOverride as apiVarOverride } from './api.js?v=20260607qa43';
-import { toast, fireConfetti } from './game-fx.js?v=20260607qa43';
+import { getState, setState, escapeHtml as esc } from './state.js?v=20260607qa44';
+import { setMatchResult, addMatch as apiAddMatch, updateFactors as apiUpdateFactors, fetchResults as apiFetchResults, fetchOdds as apiFetchOdds, clearSandbox as apiClearSandbox, refreshSyncStatus, varOverride as apiVarOverride } from './api.js?v=20260607qa44';
+import { toast, fireConfetti } from './game-fx.js?v=20260607qa44';
 
 // (qa30) PIN de admin eliminado: Gestión abierta, sin prompt.
 async function handleAdminError(e) {
@@ -144,7 +144,7 @@ function renderProposal_(p) {
          data-fl="${prop.fl ?? ''}" data-fe="${prop.fe ?? ''}" data-fv="${prop.fv ?? ''}">
       <div class="prop-info">
         <div class="prop-date">${p.match_date}</div>
-        <div class="prop-teams">${p.home_team} <em>vs</em> ${p.away_team}</div>
+        <div class="prop-teams">${esc(p.home_team)} <em>vs</em> ${esc(p.away_team)}</div>
       </div>
       <div class="prop-odds">
         <div class="prop-cell"><b>${fmt(prop.fl)}</b><small>Fac L</small></div>
@@ -288,7 +288,7 @@ function fillMatchList(prefix) {
              : `<span class="mp-badge mp-badge-empty">sin cuotas</span>`;
     row.innerHTML = `
       <span class="mp-date">${ds}</span>
-      <span class="mp-teams">${m.home_team} <em>vs</em> ${m.away_team}</span>
+      <span class="mp-teams">${esc(m.home_team)} <em>vs</em> ${esc(m.away_team)}</span>
       ${badge}`;
     row.onclick = () => selectMatch(prefix, m.id);
     list.appendChild(row);

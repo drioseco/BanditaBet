@@ -43,6 +43,14 @@ let state = { ...initial };
 
 const listeners = new Set();
 
+// (sec/qa44) Escape de HTML para texto que viene del Sheet (nombres de equipo,
+// jornada, etc.) antes de meterlo en innerHTML. Evita XSS almacenado.
+export function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 export function getState() { return state; }
 
 export function setState(patch) {

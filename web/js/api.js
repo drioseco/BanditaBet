@@ -3,8 +3,8 @@
 // Todos los POST son form-encoded para esquivar el CORS preflight.
 // Si CONFIG.API_URL no está configurada, fallback a /data/seed.json.
 // ════════════════════════════════════════════════════════════════════
-import { CONFIG, API } from './config.js?v=20260607qa43';
-import { getState, setState } from './state.js?v=20260607qa43';
+import { CONFIG, API } from './config.js?v=20260607qa44';
+import { getState, setState } from './state.js?v=20260607qa44';
 
 // ── (qa30) PIN de admin eliminado ───────────────────────────────────
 // Las acciones de Gestión ya no requieren PIN; postAdmin es un alias de post.
@@ -33,16 +33,37 @@ async function get(action, params = {}) {
   return res.json();
 }
 
-async function post(action, params = {}, ms = 12000) {
-  if (!API()) throw new Error('api_not_configured');
+// (sec/qa44) Acciones que escriben o gatillan la IA paga: el backend les exige
+// la clave compartida (WRITE_KEY) si está configurada. La clave se guarda en
+// localStorage; si el backend la rechaza, se pide una vez y se reintenta.
+const WRITE_ACTIONS = new Set([
+  'savePicks', 'setResult', 'addMatch', 'updateFactors', 'clearSandbox',
+  'fetchResults', 'fetchOdds', 'hubAsk', 'hubPreview', 'hubImport',
+]);
+function getWriteKey() { try { return localStorage.getItem('bb_write_key') || ''; } catch { return ''; } }
+export function setWriteKey(k) { try { localStorage.setItem('bb_write_key', (k || '').trim()); } catch {} }
+
+async function rawPost(action, params, ms, keyOverride) {
   const body = new URLSearchParams();
   body.set('action', action);
   for (const [k, v] of Object.entries(params)) {
     body.set(k, typeof v === 'object' ? JSON.stringify(v) : v);
   }
+  if (WRITE_ACTIONS.has(action)) body.set('key', keyOverride != null ? keyOverride : getWriteKey());
   const res = await fetchTO(API(), { method: 'POST', body }, ms);
   if (!res.ok) throw new Error('http_' + res.status);
   return res.json();
+}
+
+async function post(action, params = {}, ms = 12000) {
+  if (!API()) throw new Error('api_not_configured');
+  let json = await rawPost(action, params, ms);
+  if (json && json.ok === false && json.error === 'write_denied' && WRITE_ACTIONS.has(action)) {
+    let k = null;
+    try { k = window.prompt('🔑 Clave de escritura de BanditaBet\n(la que configuró el admin en el backend):'); } catch {}
+    if (k && k.trim()) { setWriteKey(k); json = await rawPost(action, params, ms, k.trim()); }
+  }
+  return json;
 }
 
 // ── Caché de estado en cliente (qa29 · stale-while-revalidate) ───────

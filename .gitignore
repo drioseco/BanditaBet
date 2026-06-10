@@ -5,3 +5,4 @@ _assets-source/
 _legacy/
 node_modules/
 .env
+.gstack/

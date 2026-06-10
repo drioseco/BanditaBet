@@ -148,8 +148,34 @@ function doPost(e) {
 // Antes (qa23) las acciones de Gestión requerían ADMIN_PIN. Se quitó a
 // pedido del usuario: la Gestión queda abierta para los 4 jugadores.
 
+// ── (sec/qa44) Clave de escritura compartida ─────────────────────────
+// La Web App es pública (cualquiera con la URL puede llamarla). Para que solo
+// los 4 puedan ESCRIBIR (y gatillar la IA paga), las acciones mutadoras exigen
+// p.key === WRITE_KEY. WRITE_KEY se setea en Script Properties (lo pone Dari, yo
+// nunca lo veo). Si NO está seteada, se permite todo (compat hacia atrás: el
+// deploy no rompe nada; la protección se activa al setear la propiedad).
+// Las lecturas (state/health/sync-status/hub) quedan SIEMPRE abiertas.
+function writeKey_() {
+  try { return PropertiesService.getScriptProperties().getProperty('WRITE_KEY') || ''; }
+  catch (e) { return ''; }
+}
+function assertWrite_(p) {
+  var k = writeKey_();
+  if (!k) return null;                                  // no configurada → permitir
+  if (p && String(p.key || '') === k) return null;      // clave correcta
+  return { ok: false, error: 'write_denied' };          // bloqueado
+}
+var WRITE_ACTIONS = {
+  savePicks: 1, setResult: 1, addMatch: 1, updateFactors: 1, clearSandbox: 1,
+  fetchResults: 1, fetchOdds: 1, hubAsk: 1, hubPreview: 1, hubImport: 1,
+};
+
 function handle(action, p) {
   try {
+    if (WRITE_ACTIONS[action]) {
+      var _denied = assertWrite_(p);
+      if (_denied) return _denied;
+    }
     switch (action) {
       case 'health':       return health_();
       case 'state':        return stateCached_(p);

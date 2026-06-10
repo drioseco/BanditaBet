@@ -109,6 +109,17 @@ codificado en `parseExpertoRow` y `colIndexes_('experto')`.
   puede cargar resultados / fixtures desde la app (ya no hay `assertAdmin_` ni
   `ADMIN_PIN`). Si en el futuro se quiere volver a proteger, ver el historial
   de qa23.
+- ⚠️ **Clave de escritura `WRITE_KEY` (qa44 · /cso).** La Web App es pública, así
+  que sin protección cualquiera con la URL podía escribir (savePicks, setResult,
+  addMatch…) y gatillar la IA paga. Fix: las acciones mutadoras + de IA exigen
+  `p.key === WRITE_KEY` (`assertWrite_`/`WRITE_ACTIONS` en Code.gs). **Para
+  activarlo: setear `WRITE_KEY` en Script Properties** (Dari elige el valor, igual
+  que la API key). **Si no está seteada, se permite todo (fail-open)** → el deploy
+  no rompe nada; la protección se activa al poner la propiedad. En el frontend la
+  clave se guarda en `localStorage.bb_write_key`; si el backend la rechaza, la app
+  la pide una vez y reintenta. Lecturas (state/hub) quedan abiertas.
+  Defensa #2: el frontend ahora **escapa con `escapeHtml`** los nombres de equipo
+  del Sheet antes de `innerHTML` (anti-XSS almacenado).
 - **📺 Modo VAR (qa40) — override de picks olvidados (anti-WO).** En Gestión hay
   un panel "Modo VAR" que corrige un pick que se pasó a WO (no se cargó a tiempo)
   **aunque el partido ya tenga resultado** — `savePicks_` bloquea picks de partidos
