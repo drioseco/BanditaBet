@@ -66,6 +66,12 @@
   cursor: pointer;
   transition: transform .15s, box-shadow .15s;
   flex-shrink: 0;
+  position: relative;
+}
+/* qa41 — área táctil de 44px sin agrandar el punto visible (móvil-first) */
+.bb-theme-dot::after {
+  content: ''; position: absolute; top: 50%; left: 50%;
+  width: 44px; height: 44px; transform: translate(-50%, -50%);
 }
 .bb-theme-dot:hover  { transform: scale(1.2); }
 .bb-theme-dot.active { box-shadow: 0 0 0 2px var(--bb-ink); }

@@ -2,9 +2,9 @@
 // Home view — leaderboard, title race, narrative feed, próximos picks,
 // últimos resultados.
 // ════════════════════════════════════════════════════════════════════
-import { getState, setState, hasRes, hasPick, isFut, h2r, mDate, TODAY, hoursUntil, fmtPts } from './state.js?v=20260606qa40';
-import { CONFIG } from './config.js?v=20260606qa40';
-import { renderBadge, computeBadgesFor, computeXPFor, LEVEL_DEFS, computeMissionsFor } from './game-fx.js?v=20260606qa40';
+import { getState, setState, hasRes, hasPick, isFut, h2r, mDate, TODAY, hoursUntil, fmtPts } from './state.js?v=20260607qa41';
+import { CONFIG } from './config.js?v=20260607qa41';
+import { renderBadge, computeBadgesFor, computeXPFor, LEVEL_DEFS, computeMissionsFor } from './game-fx.js?v=20260607qa41';
 
 const PLAYERS = CONFIG.PLAYERS;
 
@@ -998,16 +998,23 @@ export function renderScopeChips() {
   const box = document.getElementById('home-scope-chips');
   if (!box) return;
   const scope = getState().homeScope || 'general';
-  const chips = [
+  const main = [
     { scope: 'general', label: 'General' },
     { scope: 'liga',    label: 'Liga' },
-    ...expertoTorneos().map(t => ({ scope: 'exp:' + t, label: t })),
   ];
+  const exp = expertoTorneos().map(t => ({ scope: 'exp:' + t, label: t }));
+  const btn = c =>
+    `<button class="ft${c.scope === scope ? ' on' : ''}" data-scope="${c.scope}">${c.label}</button>`;
+  // Jerarquía: General y Liga son los scopes principales; el resto son torneos
+  // de Experto, agrupados tras un separador para no leerse como 15 chips iguales.
   box.innerHTML =
     `<span class="flt-lbl">Competencia:</span>` +
-    chips.map(c =>
-      `<button class="ft${c.scope === scope ? ' on' : ''}" data-scope="${c.scope}">${c.label}</button>`
-    ).join('');
+    main.map(btn).join('') +
+    (exp.length
+      ? `<span class="ft-sep" aria-hidden="true"></span>` +
+        `<span class="flt-lbl flt-lbl-sub">Experto</span>` +
+        exp.map(btn).join('')
+      : '');
 }
 
 // ── Cuerpo de la tabla de clasificación, recalculado según el scope ──

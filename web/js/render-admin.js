@@ -1,7 +1,7 @@
 // Admin view — cargar resultados, agregar fixtures, info de sync.
-import { getState, setState } from './state.js?v=20260606qa40';
-import { setMatchResult, addMatch as apiAddMatch, updateFactors as apiUpdateFactors, fetchResults as apiFetchResults, fetchOdds as apiFetchOdds, clearSandbox as apiClearSandbox, refreshSyncStatus, varOverride as apiVarOverride } from './api.js?v=20260606qa40';
-import { toast, fireConfetti } from './game-fx.js?v=20260606qa40';
+import { getState, setState } from './state.js?v=20260607qa41';
+import { setMatchResult, addMatch as apiAddMatch, updateFactors as apiUpdateFactors, fetchResults as apiFetchResults, fetchOdds as apiFetchOdds, clearSandbox as apiClearSandbox, refreshSyncStatus, varOverride as apiVarOverride } from './api.js?v=20260607qa41';
+import { toast, fireConfetti } from './game-fx.js?v=20260607qa41';
 
 // (qa30) PIN de admin eliminado: Gestión abierta, sin prompt.
 async function handleAdminError(e) {
