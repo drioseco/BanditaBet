@@ -79,7 +79,7 @@
   <rect x="360" y="686" width="280" height="10" fill="url(#holo2)" stroke="#1F1A2E" stroke-width="2"/>
 
   <!-- canto del campeón -->
-  <text class="display" x="500" y="742" text-anchor="middle" font-size="34" textLength="320" lengthAdjust="spacingAndGlyphs" fill="#F8EFD8">¡DERI CAMPEOOON!</text>
+  <text class="display" x="500" y="742" text-anchor="middle" font-size="34" textLength="320" lengthAdjust="spacingAndGlyphs" fill="#F8EFD8">¡DARI CAMPEOOON!</text>
 
   <!-- estrellitas de los 4 jugadores -->
   <g fill="#F8EFD8">
