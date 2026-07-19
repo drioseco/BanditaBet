@@ -3,8 +3,8 @@
 // Todos los POST son form-encoded para esquivar el CORS preflight.
 // Si CONFIG.API_URL no está configurada, fallback a /data/seed.json.
 // ════════════════════════════════════════════════════════════════════
-import { CONFIG, API } from './config.js?v=20260719qa45';
-import { getState, setState } from './state.js?v=20260719qa45';
+import { CONFIG, API } from './config.js?v=20260607qa44';
+import { getState, setState } from './state.js?v=20260607qa44';
 
 // ── (qa30) PIN de admin eliminado ───────────────────────────────────
 // Las acciones de Gestión ya no requieren PIN; postAdmin es un alias de post.

@@ -6,7 +6,7 @@
 //  · F3/F5: simulador de bracket para las copas, proyectado desde los
 //    grupos actuales (top 2 clasifican). El sorteo real 2026 aún no existe.
 // ════════════════════════════════════════════════════════════════════
-import { getHub, askStats } from './api.js?v=20260719qa45';
+import { getHub, askStats } from './api.js?v=20260607qa44';
 
 let _comp = 'liga';
 let _mode = 'tabla';        // 'tabla' | 'bracket'

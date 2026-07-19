@@ -945,11 +945,3 @@ select.fi { appearance: none; cursor: pointer; }
 .var-bar i { display: block; height: 100%; width: 40%; background: var(--bb-ink); border-radius: 3px;
   animation: var-scan 1s ease-in-out infinite; }
 @keyframes var-scan { 0% { margin-left: -40%; } 100% { margin-left: 100%; } }
-
-/* ════ Campeón de Banditagol · galería en Home ═══════════════════════ */
-.champ-gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 18px 0 26px; align-items: start; }
-.champ-card { display: block; background: var(--bb-paper); border: var(--bb-border); box-shadow: var(--bb-shadow);
-  padding: 10px; transition: transform var(--bb-fast) var(--bb-ease-pop), box-shadow var(--bb-fast); }
-.champ-card:hover { transform: translate(-2px,-2px) rotate(-.4deg); box-shadow: 6px 6px 0 var(--bb-ink); }
-.champ-card img { display: block; width: 100%; height: auto; }
-@media (max-width: 720px) { .champ-gallery { grid-template-columns: 1fr; } }
