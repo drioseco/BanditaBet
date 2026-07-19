@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200" width="900" height="1200" role="img" aria-label="Afiche: Campeón de Banditagol">
+  <!-- ══════════════════════════════════════════════════════════
+       BanditaBet · Afiche CAMPEÓN DE BANDITAGOL (estilo BB:
+       crema + tinta + oro + granate, hard-shadows, Anton)
+  ══════════════════════════════════════════════════════════ -->
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Anton&amp;family=Space+Mono:wght@700&amp;display=swap');
+      .display { font-family: 'Anton', 'Archivo Black', Impact, 'Arial Black', sans-serif; }
+      .mono    { font-family: 'Space Mono', ui-monospace, Menlo, monospace; font-weight: 700; }
+    </style>
+    <linearGradient id="holo" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#9CD3E8"/>
+      <stop offset="28%"  stop-color="#F2C2D8"/>
+      <stop offset="52%"  stop-color="#FBE38B"/>
+      <stop offset="76%"  stop-color="#9CD3E8"/>
+      <stop offset="100%" stop-color="#F2C2D8"/>
+    </linearGradient>
+    <linearGradient id="cupGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#F9C232"/>
+      <stop offset="70%" stop-color="#E8B33D"/>
+      <stop offset="100%" stop-color="#D4890A"/>
+    </linearGradient>
+    <!-- estrella 5 puntas centrada en 0,0 (r exterior 1) -->
+    <path id="star" d="M0,-1 L0.2245,-0.309 L0.9511,-0.309 L0.3633,0.118 L0.5878,0.809 L0,0.382 L-0.5878,0.809 L-0.3633,0.118 L-0.9511,-0.309 L-0.2245,-0.309 Z"/>
+  </defs>
+
+  <!-- fondo papel -->
+  <rect width="900" height="1200" fill="#F2E3C2"/>
+
+  <!-- marco doble tinta -->
+  <rect x="26" y="26" width="848" height="1148" fill="none" stroke="#1F1A2E" stroke-width="6"/>
+  <rect x="44" y="44" width="812" height="1112" fill="none" stroke="#1F1A2E" stroke-width="2"/>
+
+  <!-- confetti -->
+  <g>
+    <rect x="120" y="180" width="16" height="16" fill="#9CD3E8" stroke="#1F1A2E" stroke-width="2" transform="rotate(18 128 188)"/>
+    <rect x="760" y="230" width="16" height="16" fill="#F2C2D8" stroke="#1F1A2E" stroke-width="2" transform="rotate(-24 768 238)"/>
+    <rect x="150" y="620" width="14" height="14" fill="#FBE38B" stroke="#1F1A2E" stroke-width="2" transform="rotate(40 157 627)"/>
+    <rect x="748" y="580" width="14" height="14" fill="#9CD3E8" stroke="#1F1A2E" stroke-width="2" transform="rotate(-12 755 587)"/>
+    <circle cx="200" cy="330" r="8" fill="#E8442C" stroke="#1F1A2E" stroke-width="2"/>
+    <circle cx="712" cy="400" r="8" fill="#2E6B3A" stroke="#1F1A2E" stroke-width="2"/>
+    <circle cx="130" cy="470" r="7" fill="#E96A8D" stroke="#1F1A2E" stroke-width="2"/>
+    <circle cx="775" cy="700" r="7" fill="#1E4FB8" stroke="#1F1A2E" stroke-width="2"/>
+    <use href="#star" transform="translate(215,540) scale(16)" fill="#E8B33D" stroke="#1F1A2E" stroke-width="0.14"/>
+    <use href="#star" transform="translate(688,300) scale(14) rotate(20)" fill="#E8B33D" stroke="#1F1A2E" stroke-width="0.14"/>
+    <use href="#star" transform="translate(690,640) scale(12) rotate(-15)" fill="#E96A8D" stroke="#1F1A2E" stroke-width="0.14"/>
+    <use href="#star" transform="translate(180,250) scale(11) rotate(30)" fill="#9CD3E8" stroke="#1F1A2E" stroke-width="0.14"/>
+  </g>
+
+  <!-- cabecera -->
+  <text class="mono" x="450" y="112" text-anchor="middle" font-size="26" letter-spacing="6" fill="#1F1A2E">BANDITA BET · PRODE 2026</text>
+  <rect x="330" y="134" width="240" height="8" fill="url(#holo)" stroke="#1F1A2E" stroke-width="2"/>
+
+  <!-- ── TROFEO con hard-shadow ─────────────────────────── -->
+  <!-- sombra dura -->
+  <g transform="translate(458,462)" fill="#1F1A2E">
+    <path d="M-95,-190 h190 v30 c0,105 -38,165 -95,165 c-57,0 -95,-60 -95,-165 z"/>
+    <path d="M-95,-170 c-72,-10 -85,95 5,110 l6,-30 c-62,-12 -55,-72 -11,-70 z"/>
+    <path d="M95,-170 c72,-10 85,95 -5,110 l-6,-30 c62,-12 55,-72 11,-70 z"/>
+    <rect x="-16" y="2" width="32" height="52"/>
+    <rect x="-42" y="52" width="84" height="18"/>
+    <rect x="-78" y="68" width="156" height="34" rx="4"/>
+  </g>
+  <!-- trofeo -->
+  <g transform="translate(450,454)" stroke="#1F1A2E" stroke-width="5">
+    <path d="M-95,-170 c-72,-10 -85,95 5,110 l6,-30 c-62,-12 -55,-72 -11,-70 z" fill="#E8B33D"/>
+    <path d="M95,-170 c72,-10 85,95 -5,110 l-6,-30 c62,-12 55,-72 11,-70 z" fill="#E8B33D"/>
+    <path d="M-95,-190 h190 v30 c0,105 -38,165 -95,165 c-57,0 -95,-60 -95,-165 z" fill="url(#cupGold)"/>
+    <rect x="-16" y="2" width="32" height="52" fill="#E8B33D"/>
+    <rect x="-42" y="52" width="84" height="18" fill="#E8B33D"/>
+    <rect x="-78" y="68" width="156" height="34" rx="4" fill="#8C1D2F"/>
+    <use href="#star" transform="translate(0,-88) scale(44)" fill="#8C1D2F" stroke="#1F1A2E" stroke-width="0.11"/>
+    <!-- brillo -->
+    <rect x="-70" y="-176" width="22" height="120" rx="10" fill="#FDDA6A" stroke="none" opacity="0.7" transform="rotate(6)"/>
+  </g>
+
+  <!-- ── TITULAR ────────────────────────────────────────── -->
+  <!-- sombra dura del titular -->
+  <text class="display" x="458" y="782" text-anchor="middle" font-size="150" textLength="720" lengthAdjust="spacingAndGlyphs" fill="#1F1A2E">CAMPEÓN</text>
+  <text class="display" x="450" y="774" text-anchor="middle" font-size="150" textLength="720" lengthAdjust="spacingAndGlyphs" fill="#E8B33D" stroke="#1F1A2E" stroke-width="4" paint-order="stroke">CAMPEÓN</text>
+
+  <!-- banda granate inclinada -->
+  <g transform="rotate(-2.5 450 890)">
+    <rect x="112" y="848" width="684" height="92" fill="#1F1A2E"/>
+    <rect x="104" y="840" width="684" height="92" fill="#8C1D2F" stroke="#1F1A2E" stroke-width="4"/>
+    <text class="display" x="446" y="912" text-anchor="middle" font-size="62" textLength="580" lengthAdjust="spacingAndGlyphs" fill="#F8EFD8">DE BANDITAGOL</text>
+  </g>
+
+  <!-- subrayado holo -->
+  <rect x="240" y="984" width="420" height="12" fill="url(#holo)" stroke="#1F1A2E" stroke-width="2" transform="rotate(-2.5 450 990)"/>
+
+  <!-- canto del campeón -->
+  <g transform="rotate(-2 450 1040)">
+    <text class="display" x="456" y="1064" text-anchor="middle" font-size="64" textLength="600" lengthAdjust="spacingAndGlyphs" fill="#1F1A2E">¡DARI CAMPEOOON!</text>
+    <text class="display" x="450" y="1058" text-anchor="middle" font-size="64" textLength="600" lengthAdjust="spacingAndGlyphs" fill="#1E4FB8">¡DARI CAMPEOOON!</text>
+  </g>
+
+  <!-- pie -->
+  <text class="mono" x="450" y="1118" text-anchor="middle" font-size="19" letter-spacing="3" fill="#8C1D2F">DARI · KMI · BLOPA · PELA · XV ANIVERSARIO</text>
+</svg>

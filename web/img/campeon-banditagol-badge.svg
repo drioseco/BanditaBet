@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000" role="img" aria-label="Escudo: Campeón de Banditagol">
+  <!-- ══════════════════════════════════════════════════════════
+       BanditaBet · Escudo CAMPEÓN DE BANDITAGOL (versión noche:
+       tinta + oro + crema + laureles, sello circular)
+  ══════════════════════════════════════════════════════════ -->
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Anton&amp;family=Space+Mono:wght@700&amp;display=swap');
+      .display { font-family: 'Anton', 'Archivo Black', Impact, 'Arial Black', sans-serif; }
+      .mono    { font-family: 'Space Mono', ui-monospace, Menlo, monospace; font-weight: 700; }
+    </style>
+    <linearGradient id="holo2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#9CD3E8"/>
+      <stop offset="28%"  stop-color="#F2C2D8"/>
+      <stop offset="52%"  stop-color="#FBE38B"/>
+      <stop offset="76%"  stop-color="#9CD3E8"/>
+      <stop offset="100%" stop-color="#F2C2D8"/>
+    </linearGradient>
+    <path id="star2" d="M0,-1 L0.2245,-0.309 L0.9511,-0.309 L0.3633,0.118 L0.5878,0.809 L0,0.382 L-0.5878,0.809 L-0.3633,0.118 L-0.9511,-0.309 L-0.2245,-0.309 Z"/>
+    <ellipse id="hoja" rx="26" ry="10"/>
+    <!-- arcos para texto circular (sentido horario arriba, antihorario abajo) -->
+    <path id="arcTop" d="M 500,500 m -368,0 a 368,368 0 1 1 736,0"/>
+    <path id="arcBottom" d="M 500,500 m -368,0 a 368,368 0 1 0 736,0"/>
+  </defs>
+
+  <!-- fondo tinta -->
+  <rect width="1000" height="1000" fill="#1F1A2E"/>
+
+  <!-- resplandor granate sutil -->
+  <circle cx="500" cy="500" r="470" fill="#8C1D2F" opacity="0.18"/>
+
+  <!-- anillos del sello -->
+  <circle cx="500" cy="500" r="452" fill="none" stroke="#E8B33D" stroke-width="10"/>
+  <circle cx="500" cy="500" r="428" fill="none" stroke="#F8EFD8" stroke-width="3" stroke-dasharray="2 10" stroke-linecap="round"/>
+  <circle cx="500" cy="500" r="312" fill="#8C1D2F" stroke="#E8B33D" stroke-width="6"/>
+  <circle cx="500" cy="500" r="296" fill="none" stroke="#F8EFD8" stroke-width="2" opacity="0.5"/>
+
+  <!-- texto circular: arriba el título, abajo la edición -->
+  <text class="display" font-size="56" letter-spacing="10" fill="#F8EFD8">
+    <textPath href="#arcTop" startOffset="50%" text-anchor="middle">★ CAMPEÓN DE BANDITAGOL ★</textPath>
+  </text>
+  <text class="mono" font-size="30" letter-spacing="8" fill="#E8B33D">
+    <textPath href="#arcBottom" startOffset="50%" text-anchor="middle">BANDITA BET · PRODE 2026 · XV ANIVERSARIO</textPath>
+  </text>
+
+  <!-- laureles: hojas tangenciales sobre el arco interior (r=262) -->
+  <g fill="#F8EFD8" stroke="#8C1D2F" stroke-width="2">
+    <!-- rama izquierda -->
+    <use href="#hoja" transform="translate(349.7,714.6) rotate(215)"/>
+    <use href="#hoja" transform="translate(299.3,668.4) rotate(230)"/>
+    <use href="#hoja" transform="translate(262.6,610.7) rotate(245)"/>
+    <use href="#hoja" transform="translate(241.9,545.5) rotate(260)"/>
+    <use href="#hoja" transform="translate(239.0,477.2) rotate(275)"/>
+    <use href="#hoja" transform="translate(253.8,410.4) rotate(290)"/>
+    <use href="#hoja" transform="translate(285.3,349.7) rotate(305)"/>
+    <!-- rama derecha (espejo) -->
+    <use href="#hoja" transform="translate(650.3,714.6) rotate(-215)"/>
+    <use href="#hoja" transform="translate(700.7,668.4) rotate(-230)"/>
+    <use href="#hoja" transform="translate(737.4,610.7) rotate(-245)"/>
+    <use href="#hoja" transform="translate(758.1,545.5) rotate(-260)"/>
+    <use href="#hoja" transform="translate(761.0,477.2) rotate(-275)"/>
+    <use href="#hoja" transform="translate(746.2,410.4) rotate(-290)"/>
+    <use href="#hoja" transform="translate(714.7,349.7) rotate(-305)"/>
+  </g>
+
+  <!-- estrella corona -->
+  <use href="#star2" transform="translate(500,338) scale(46)" fill="#E8B33D" stroke="#1F1A2E" stroke-width="0.1"/>
+
+  <!-- centro: titular apilado con hard-shadow -->
+  <text class="display" x="506" y="506" text-anchor="middle" font-size="104" textLength="390" lengthAdjust="spacingAndGlyphs" fill="#1F1A2E">CAMPEÓN</text>
+  <text class="display" x="500" y="500" text-anchor="middle" font-size="104" textLength="390" lengthAdjust="spacingAndGlyphs" fill="#F8EFD8">CAMPEÓN</text>
+
+  <text class="mono" x="500" y="552" text-anchor="middle" font-size="34" letter-spacing="14" fill="#F2C2D8">— DE —</text>
+
+  <text class="display" x="506" y="656" text-anchor="middle" font-size="96" textLength="420" lengthAdjust="spacingAndGlyphs" fill="#1F1A2E">BANDITAGOL</text>
+  <text class="display" x="500" y="650" text-anchor="middle" font-size="96" textLength="420" lengthAdjust="spacingAndGlyphs" fill="#E8B33D">BANDITAGOL</text>
+
+  <!-- subrayado holo -->
+  <rect x="360" y="686" width="280" height="10" fill="url(#holo2)" stroke="#1F1A2E" stroke-width="2"/>
+
+  <!-- canto del campeón -->
+  <text class="display" x="500" y="742" text-anchor="middle" font-size="34" textLength="320" lengthAdjust="spacingAndGlyphs" fill="#F8EFD8">¡DARI CAMPEOOON!</text>
+
+  <!-- estrellitas de los 4 jugadores -->
+  <g fill="#F8EFD8">
+    <use href="#star2" transform="translate(428,774) scale(11)" fill="#1E4FB8" stroke="#F8EFD8" stroke-width="0.12"/>
+    <use href="#star2" transform="translate(476,774) scale(11)" fill="#E8442C" stroke="#F8EFD8" stroke-width="0.12"/>
+    <use href="#star2" transform="translate(524,774) scale(11)" fill="#E8B33D" stroke="#F8EFD8" stroke-width="0.12"/>
+    <use href="#star2" transform="translate(572,774) scale(11)" fill="#2E6B3A" stroke="#F8EFD8" stroke-width="0.12"/>
+  </g>
+</svg>
