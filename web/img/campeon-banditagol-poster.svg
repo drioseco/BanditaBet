@@ -92,10 +92,10 @@
 
   <!-- canto del campeón -->
   <g transform="rotate(-2 450 1040)">
-    <text class="display" x="456" y="1064" text-anchor="middle" font-size="64" textLength="600" lengthAdjust="spacingAndGlyphs" fill="#1F1A2E">¡DARI CAMPEOOON!</text>
-    <text class="display" x="450" y="1058" text-anchor="middle" font-size="64" textLength="600" lengthAdjust="spacingAndGlyphs" fill="#1E4FB8">¡DARI CAMPEOOON!</text>
+    <text class="display" x="456" y="1078" text-anchor="middle" font-size="64" textLength="600" lengthAdjust="spacingAndGlyphs" fill="#1F1A2E">¡DARI CAMPEOOON!</text>
+    <text class="display" x="450" y="1072" text-anchor="middle" font-size="64" textLength="600" lengthAdjust="spacingAndGlyphs" fill="#1E4FB8">¡DARI CAMPEOOON!</text>
   </g>
 
   <!-- pie -->
-  <text class="mono" x="450" y="1118" text-anchor="middle" font-size="19" letter-spacing="3" fill="#8C1D2F">DARI · KMI · BLOPA · PELA · XV ANIVERSARIO</text>
+  <text class="mono" x="450" y="1128" text-anchor="middle" font-size="19" letter-spacing="3" fill="#8C1D2F">DARI · KMI · BLOPA · PELA · XV ANIVERSARIO</text>
 </svg>
