@@ -90,7 +90,12 @@
   <!-- subrayado holo -->
   <rect x="240" y="984" width="420" height="12" fill="url(#holo)" stroke="#1F1A2E" stroke-width="2" transform="rotate(-2.5 450 990)"/>
 
+  <!-- canto del campeón -->
+  <g transform="rotate(-2 450 1040)">
+    <text class="display" x="456" y="1064" text-anchor="middle" font-size="64" textLength="600" lengthAdjust="spacingAndGlyphs" fill="#1F1A2E">¡DERI CAMPEOOON!</text>
+    <text class="display" x="450" y="1058" text-anchor="middle" font-size="64" textLength="600" lengthAdjust="spacingAndGlyphs" fill="#1E4FB8">¡DERI CAMPEOOON!</text>
+  </g>
+
   <!-- pie -->
-  <text class="mono" x="450" y="1066" text-anchor="middle" font-size="24" letter-spacing="4" fill="#1F1A2E">DARI · KMI · BLOPA · PELA</text>
-  <text class="mono" x="450" y="1112" text-anchor="middle" font-size="20" letter-spacing="8" fill="#8C1D2F">XV ANIVERSARIO</text>
+  <text class="mono" x="450" y="1118" text-anchor="middle" font-size="19" letter-spacing="3" fill="#8C1D2F">DARI · KMI · BLOPA · PELA · XV ANIVERSARIO</text>
 </svg>

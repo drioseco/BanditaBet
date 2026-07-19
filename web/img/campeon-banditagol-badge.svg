@@ -78,11 +78,14 @@
   <!-- subrayado holo -->
   <rect x="360" y="686" width="280" height="10" fill="url(#holo2)" stroke="#1F1A2E" stroke-width="2"/>
 
+  <!-- canto del campeón -->
+  <text class="display" x="500" y="742" text-anchor="middle" font-size="34" textLength="320" lengthAdjust="spacingAndGlyphs" fill="#F8EFD8">¡DERI CAMPEOOON!</text>
+
   <!-- estrellitas de los 4 jugadores -->
   <g fill="#F8EFD8">
-    <use href="#star2" transform="translate(428,742) scale(12)" fill="#1E4FB8" stroke="#F8EFD8" stroke-width="0.12"/>
-    <use href="#star2" transform="translate(476,742) scale(12)" fill="#E8442C" stroke="#F8EFD8" stroke-width="0.12"/>
-    <use href="#star2" transform="translate(524,742) scale(12)" fill="#E8B33D" stroke="#F8EFD8" stroke-width="0.12"/>
-    <use href="#star2" transform="translate(572,742) scale(12)" fill="#2E6B3A" stroke="#F8EFD8" stroke-width="0.12"/>
+    <use href="#star2" transform="translate(428,774) scale(11)" fill="#1E4FB8" stroke="#F8EFD8" stroke-width="0.12"/>
+    <use href="#star2" transform="translate(476,774) scale(11)" fill="#E8442C" stroke="#F8EFD8" stroke-width="0.12"/>
+    <use href="#star2" transform="translate(524,774) scale(11)" fill="#E8B33D" stroke="#F8EFD8" stroke-width="0.12"/>
+    <use href="#star2" transform="translate(572,774) scale(11)" fill="#2E6B3A" stroke="#F8EFD8" stroke-width="0.12"/>
   </g>
 </svg>
